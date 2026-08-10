@@ -70,13 +70,28 @@ alter table mejoras enable row level security;
 alter table incidencias enable row level security;
 alter table profiles enable row level security;
 
--- Politica de ejemplo: un dueno solo ve sus villas asignadas.
--- Ajustar segun el modelo final de gobierno de la AC.
-create policy "duenos ven solo sus villas" on mejoras
-  for select using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid()
-        and (p.rol != 'dueno' or villa_id = any(p.villas_asignadas))
-    )
-  );
+-- ============================================================
+-- Politicas TEMPORALES para poder probar la app de inmediato:
+-- cualquier persona con la anon key puede leer y escribir todo.
+-- Esto es intencional mientras se conecta Auth con los 5 roles.
+-- Antes de dar acceso real a duenos o al equipo, borrar estas
+-- politicas "dev_*" y activar las de mas abajo (o equivalentes).
+-- ============================================================
+create policy "dev_villas_all" on villas for all using (true) with check (true);
+create policy "dev_checklist_all" on checklist_items for all using (true) with check (true);
+create policy "dev_insumos_all" on insumos for all using (true) with check (true);
+create policy "dev_mejoras_all" on mejoras for all using (true) with check (true);
+create policy "dev_incidencias_all" on incidencias for all using (true) with check (true);
+create policy "dev_profiles_all" on profiles for all using (true) with check (true);
+
+-- Politica de ejemplo para cuando se conecte Auth: un dueno solo ve sus
+-- villas asignadas; el resto de los roles ve todo. Activar (y borrar las
+-- "dev_*" de arriba) una vez que profiles.rol este poblado via Auth.
+-- create policy "duenos ven solo sus villas" on mejoras
+--   for select using (
+--     exists (
+--       select 1 from profiles p
+--       where p.id = auth.uid()
+--         and (p.rol != 'dueno' or villa_id = any(p.villas_asignadas))
+--     )
+--   );

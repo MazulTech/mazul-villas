@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { mejoras as mejorasSeed, villas } from "../data/mockData";
+import { listarMejoras, listarVillas, type VillaBasica } from "../lib/data";
+import type { Mejora } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA } from "../lib/urgencia";
 
 const RESOLUCION_LABEL: Record<string, string> = {
@@ -10,13 +11,27 @@ const RESOLUCION_LABEL: Record<string, string> = {
 };
 
 export default function Mejoras() {
+  const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [villaFiltro, setVillaFiltro] = useState<string>("todas");
+  const [mejoras, setMejoras] = useState<Mejora[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    listarVillas().then(setVillas);
+  }, []);
+
+  useEffect(() => {
+    setCargando(true);
+    listarMejoras(villaFiltro === "todas" ? undefined : villaFiltro).then((data) => {
+      setMejoras(data);
+      setCargando(false);
+    });
+  }, [villaFiltro]);
 
   const items = useMemo(() => {
-    const base = villaFiltro === "todas" ? mejorasSeed : mejorasSeed.filter((m) => m.villaId === villaFiltro);
     const orden = { critico: 0, operacional: 1, estetica: 2 } as const;
-    return [...base].sort((a, b) => orden[a.urgencia] - orden[b.urgencia]);
-  }, [villaFiltro]);
+    return [...mejoras].sort((a, b) => orden[a.urgencia] - orden[b.urgencia]);
+  }, [mejoras]);
 
   const nombreVilla = (id: string) => villas.find((v) => v.id === id)?.nombre ?? id;
 
@@ -37,9 +52,9 @@ export default function Mejoras() {
         </select>
       </div>
 
-      {items.length === 0 && (
-        <div className="card card-dashed">Sin mejoras registradas.</div>
-      )}
+      {cargando && <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando mejoras...</p>}
+
+      {!cargando && items.length === 0 && <div className="card card-dashed">Sin mejoras registradas.</div>}
 
       {items.map((m) => (
         <div key={m.id} className="card">
@@ -56,7 +71,11 @@ export default function Mejoras() {
         </div>
       ))}
 
-      <Link to="/mejoras/nueva" className="btn btn-primary-dark" style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12 }}>
+      <Link
+        to="/mejoras/nueva"
+        className="btn btn-primary-dark"
+        style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12 }}
+      >
         + Nueva tarea de mejora
       </Link>
     </div>

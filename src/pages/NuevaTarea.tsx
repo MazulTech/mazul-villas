@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { villas } from "../data/mockData";
+import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
 import type { Resolucion } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA, calcularUrgencia } from "../lib/urgencia";
 
 export default function NuevaTarea() {
   const navigate = useNavigate();
-  const [villaId, setVillaId] = useState(villas[0].id);
+  const [villas, setVillas] = useState<VillaBasica[]>([]);
+  const [villaId, setVillaId] = useState("");
   const [zona, setZona] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(null);
@@ -15,6 +16,14 @@ export default function NuevaTarea() {
   const [materialNecesario, setMaterialNecesario] = useState("");
   const [especialista, setEspecialista] = useState("");
   const [costoEstimado, setCostoEstimado] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    listarVillas().then((v) => {
+      setVillas(v);
+      setVillaId(v[0]?.id ?? "");
+    });
+  }, []);
 
   const urgenciaCalculada =
     afectaSeguridadOperacion === null || afectaAmenidad === null
@@ -22,12 +31,27 @@ export default function NuevaTarea() {
       : calcularUrgencia(afectaSeguridadOperacion, afectaAmenidad);
 
   const puedeGuardar =
-    descripcion.trim().length > 0 && zona.trim().length > 0 && urgenciaCalculada !== null;
+    descripcion.trim().length > 0 && zona.trim().length > 0 && urgenciaCalculada !== null && villaId !== "";
 
-  const guardar = () => {
-    // Aquí se insertaría en Supabase (tabla mejoras). Por ahora, confirmamos
-    // y regresamos a la lista general de mejoras.
-    navigate("/mejoras");
+  const guardar = async () => {
+    if (afectaSeguridadOperacion === null || afectaAmenidad === null) return;
+    setGuardando(true);
+    try {
+      await crearMejora({
+        villaId,
+        zona,
+        descripcion,
+        afectaSeguridadOperacion,
+        afectaAmenidad,
+        resolucion,
+        materialNecesario: materialNecesario || undefined,
+        especialistaNecesario: especialista || undefined,
+        costoEstimado: costoEstimado ? Number(costoEstimado) : undefined,
+      });
+      navigate("/mejoras");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -172,8 +196,8 @@ export default function NuevaTarea() {
         </div>
       )}
 
-      <button className="btn btn-primary-dark" disabled={!puedeGuardar} onClick={guardar}>
-        Guardar tarea
+      <button className="btn btn-primary-dark" disabled={!puedeGuardar || guardando} onClick={guardar}>
+        {guardando ? "Guardando..." : "Guardar tarea"}
       </button>
     </div>
   );

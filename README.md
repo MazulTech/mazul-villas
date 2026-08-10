@@ -32,10 +32,15 @@ Sin variables de entorno configuradas, la app funciona con los datos de ejemplo 
 
 ## Conectar Supabase
 
+Las pantallas ya están conectadas a Supabase a través de `src/lib/data.ts` — mientras no haya credenciales configuradas, siguen usando `mockData.ts` automáticamente (ver `supabaseConfigured` en `src/lib/supabaseClient.ts`), así que la app nunca se rompe por falta de backend.
+
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. Corre `supabase/schema.sql` en el SQL Editor del proyecto.
-3. Copia `.env.example` a `.env` y llena `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (Project Settings → API).
-4. Reemplaza las llamadas a `mockData.ts` por consultas a `supabase` (`src/lib/supabaseClient.ts`) según se vayan conectando las pantallas.
+2. Corre `supabase/schema.sql` en el SQL Editor del proyecto (crea las tablas y políticas RLS temporales de desarrollo).
+3. Corre `supabase/seed.sql` para precargar las 13 villas reales (opcional, puedes empezar vacío).
+4. Copia `.env.example` a `.env` y llena `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (Project Settings → API).
+5. Reinicia `npm run dev` — a partir de aquí, todo lee y escribe en Supabase.
+
+**Importante:** `schema.sql` crea políticas `dev_*` que permiten leer y escribir todo con la anon key, para poder probar de inmediato. Antes de dar acceso real a dueños o al equipo, hay que borrarlas y activar políticas por rol (hay un ejemplo comentado al final del archivo).
 
 ## Subir a GitHub
 
@@ -59,7 +64,7 @@ git push -u origin main
 
 ## Pendientes conocidos
 
-- Conectar Auth de Supabase con los 5 roles (`profiles.rol`) y las políticas de Row Level Security ya definidas en `schema.sql`.
-- Conectar `NuevaTarea.tsx`, `Checklist.tsx` e `Insumos.tsx` a Supabase en vez de los arrays de `mockData.ts`.
-- Subida real de fotos a Supabase Storage.
+- Conectar Auth de Supabase con los 5 roles (`profiles.rol`) y reemplazar las políticas `dev_*` por las políticas por rol reales (ejemplo comentado en `schema.sql`).
+- Subida real de fotos a Supabase Storage (hoy el campo `fotoUrl`/`foto_url` existe pero el formulario no sube el archivo).
+- Botón "Marcar villa como lista" y "Solicitar reabasto" son visuales todavía; falta conectar sus acciones.
 - Integración con Guesty (webhooks `reservation.new`/`reservation.updated` o `task.*`) para generar el checklist de limpieza automáticamente al detectar un checkout.

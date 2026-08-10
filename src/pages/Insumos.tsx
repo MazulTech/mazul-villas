@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { insumos as insumosSeed, villas } from "../data/mockData";
+import { useEffect, useState } from "react";
+import { listarInsumos, listarVillas, type VillaBasica } from "../lib/data";
+import type { InsumoStock } from "../types";
 
 function nivelStock(actual: number, objetivo: number) {
   const ratio = objetivo === 0 ? 1 : actual / objetivo;
@@ -9,8 +10,26 @@ function nivelStock(actual: number, objetivo: number) {
 }
 
 export default function Insumos() {
-  const [villaId, setVillaId] = useState(villas[0].id);
-  const items = insumosSeed.filter((i) => i.villaId === villaId);
+  const [villas, setVillas] = useState<VillaBasica[]>([]);
+  const [villaId, setVillaId] = useState<string>("");
+  const [items, setItems] = useState<InsumoStock[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    listarVillas().then((v) => {
+      setVillas(v);
+      setVillaId(v[0]?.id ?? "");
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!villaId) return;
+    setCargando(true);
+    listarInsumos(villaId).then((data) => {
+      setItems(data);
+      setCargando(false);
+    });
+  }, [villaId]);
 
   return (
     <div>
@@ -28,7 +47,9 @@ export default function Insumos() {
         </select>
       </div>
 
-      {items.length === 0 && (
+      {cargando && <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando insumos...</p>}
+
+      {!cargando && items.length === 0 && (
         <div className="card card-dashed">Sin insumos registrados para esta villa.</div>
       )}
 
