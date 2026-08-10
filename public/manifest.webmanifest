@@ -1,0 +1,16 @@
+{
+  "name": "Mazul App",
+  "short_name": "Mazul",
+  "description": "Estandarizacion de procesos, insumos y mantenimiento para las villas Mazul",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f0e4",
+  "theme_color": "#3a2a1e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
