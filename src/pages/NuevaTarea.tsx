@@ -25,6 +25,7 @@ interface Borrador {
   materialNecesario: string;
   especialista: string;
   costoEstimado: string;
+  fotoAntesUrl: string | null;
 }
 
 function leerBorrador(): Borrador | null {
@@ -47,8 +48,10 @@ export default function NuevaTarea() {
   const [zonaOtra, setZonaOtra] = useState(borradorInicial?.zonaOtra ?? "");
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
   const [descripcion, setDescripcion] = useState(borradorInicial?.descripcion ?? "");
-  const [fotoAntes, setFotoAntes] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fotoAntesUrl, setFotoAntesUrl] = useState<string | null>(borradorInicial?.fotoAntesUrl ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(borradorInicial?.fotoAntesUrl ?? null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(
     borradorInicial?.afectaSeguridadOperacion ?? null
   );
@@ -70,9 +73,9 @@ export default function NuevaTarea() {
       .catch((e: Error) => setError(e.message));
   }, [profile]);
 
-  // Guarda un borrador con cada cambio (todo excepto la foto, que no se
-  // puede persistir en localStorage). Si se recarga la página, estos
-  // valores se recuperan solos.
+  // Guarda un borrador con cada cambio. La foto ya se sube apenas se toma
+  // (ver onFotoSeleccionada), así que aquí solo persistimos su URL, no el
+  // archivo — eso es lo que permite recuperarla si la app se recarga.
   useEffect(() => {
     const borrador: Borrador = {
       villaId,
@@ -85,6 +88,7 @@ export default function NuevaTarea() {
       materialNecesario,
       especialista,
       costoEstimado,
+      fotoAntesUrl,
     };
     try {
       window.localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(borrador));
@@ -102,6 +106,7 @@ export default function NuevaTarea() {
     materialNecesario,
     especialista,
     costoEstimado,
+    fotoAntesUrl,
   ]);
 
   const borrarBorrador = () => {
@@ -112,16 +117,28 @@ export default function NuevaTarea() {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-
-  const onFotoSeleccionada = (file: File | null) => {
-    setFotoAntes(file);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  // Sube la foto a Supabase apenas se toma/selecciona, en vez de esperar
+  // hasta "Guardar tarea". Si la app se recarga justo después de volver
+  // de la cámara (algo común en celulares), la foto ya quedó a salvo y
+  // solo se pierde si el usuario nunca llegó a este paso.
+  const onFotoSeleccionada = async (file: File | null) => {
+    if (!file) return;
+    const urlLocal = URL.createObjectURL(file);
+    setPreviewUrl((anterior) => {
+      if (anterior && anterior.startsWith("blob:")) URL.revokeObjectURL(anterior);
+      return urlLocal;
+    });
+    setSubiendoFoto(true);
+    setErrorFoto(null);
+    try {
+      const url = await subirFoto(file, `mejoras/${villaId || "sin-villa"}`);
+      setFotoAntesUrl(url);
+    } catch (e) {
+      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+      setPreviewUrl(fotoAntesUrl);
+    } finally {
+      setSubiendoFoto(false);
+    }
   };
 
   const urgenciaCalculada =
@@ -131,7 +148,8 @@ export default function NuevaTarea() {
 
   const faltantes: string[] = [];
   if (villaId === "") faltantes.push("elegir la villa");
-  if (!fotoAntes) faltantes.push('la foto "antes"');
+  if (subiendoFoto) faltantes.push('esperar a que suba la foto "antes"');
+  else if (!fotoAntesUrl) faltantes.push('la foto "antes"');
   if (zona.trim().length === 0) faltantes.push("la zona");
   if (descripcion.trim().length === 0) faltantes.push("la descripción");
   if (afectaSeguridadOperacion === null) faltantes.push("responder si afecta seguridad/operación");
@@ -140,11 +158,10 @@ export default function NuevaTarea() {
   const puedeGuardar = faltantes.length === 0;
 
   const guardar = async () => {
-    if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntes) return;
+    if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntesUrl) return;
     setGuardando(true);
     setError(null);
     try {
-      const fotoAntesUrl = await subirFoto(fotoAntes, `mejoras/${villaId}`);
       await crearMejora({
         villaId,
         zona,
@@ -174,7 +191,9 @@ export default function NuevaTarea() {
       {huboBorrador && (
         <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
           <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
-            Recuperamos lo que llevabas escrito. Vuelve a tomar la foto "antes" para poder guardar.
+            {fotoAntesUrl
+              ? "Recuperamos lo que llevabas escrito, incluida la foto."
+              : 'Recuperamos lo que llevabas escrito. Vuelve a tomar la foto "antes" para poder guardar.'}
           </p>
         </div>
       )}
@@ -200,7 +219,12 @@ export default function NuevaTarea() {
           {previewUrl ? (
             <>
               <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
-              <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto lista: {fotoAntes?.name}</p>
+              {subiendoFoto && (
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>Subiendo foto...</p>
+              )}
+              {!subiendoFoto && fotoAntesUrl && (
+                <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
+              )}
             </>
           ) : (
             "Toca para tomar o adjuntar la foto de evidencia"
@@ -214,6 +238,11 @@ export default function NuevaTarea() {
             onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
           />
         </div>
+        {errorFoto && (
+          <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 0" }}>
+            {errorFoto} Toca la foto para intentar de nuevo.
+          </p>
+        )}
       </div>
 
       <div style={{ marginBottom: 10 }}>

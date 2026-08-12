@@ -24,8 +24,10 @@ export default function NuevoItemInventario() {
   const [nombre, setNombre] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
-  const [foto, setFoto] = useState<File | null>(null);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,26 +46,39 @@ export default function NuevoItemInventario() {
     };
   }, [previewUrl]);
 
-  const onFotoSeleccionada = (file: File | null) => {
-    setFoto(file);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  const onFotoSeleccionada = async (file: File | null) => {
+    if (!file) return;
+    const urlLocal = URL.createObjectURL(file);
+    setPreviewUrl((anterior) => {
+      if (anterior && anterior.startsWith("blob:")) URL.revokeObjectURL(anterior);
+      return urlLocal;
+    });
+    setSubiendoFoto(true);
+    setErrorFoto(null);
+    try {
+      const url = await subirFoto(file, `inventario/${villaId || "sin-villa"}`);
+      setFotoUrl(url);
+    } catch (e) {
+      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+    } finally {
+      setSubiendoFoto(false);
+    }
   };
 
-  const puedeGuardar = nombre.trim().length > 0 && zona.trim().length > 0 && villaId !== "" && Number(cantidad) > 0;
+  const puedeGuardar =
+    nombre.trim().length > 0 && zona.trim().length > 0 && villaId !== "" && Number(cantidad) > 0 && !subiendoFoto;
 
   const guardar = async () => {
     setGuardando(true);
     setError(null);
     try {
-      const fotoUrl = foto ? await subirFoto(foto, `inventario/${villaId}`) : undefined;
       await crearInventarioItem({
         villaId,
         zona,
         nombre,
         cantidad: Number(cantidad),
         condicion,
-        fotoUrl,
+        fotoUrl: fotoUrl || undefined,
       });
       navigate("/inventario");
     } catch (e) {
@@ -106,7 +121,12 @@ export default function NuevoItemInventario() {
         {previewUrl ? (
           <>
             <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
-            <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto lista: {foto?.name}</p>
+            {subiendoFoto && (
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>Subiendo foto...</p>
+            )}
+            {!subiendoFoto && fotoUrl && (
+              <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
+            )}
           </>
         ) : (
           "Toca para tomar o adjuntar una foto del item"
@@ -120,6 +140,11 @@ export default function NuevoItemInventario() {
           onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
         />
       </div>
+      {errorFoto && (
+        <p style={{ fontSize: 11, color: "var(--danger)", margin: "-6px 0 10px" }}>
+          {errorFoto} Toca la foto para intentar de nuevo.
+        </p>
+      )}
 
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Zona</label>

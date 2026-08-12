@@ -29,8 +29,10 @@ export default function MejoraDetalle() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [fotoDespues, setFotoDespues] = useState<File | null>(null);
+  const [fotoDespuesUrl, setFotoDespuesUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
 
   const cargar = () => {
@@ -54,10 +56,23 @@ export default function MejoraDetalle() {
     };
   }, [previewUrl]);
 
-  const onFotoSeleccionada = (file: File | null) => {
-    setFotoDespues(file);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  const onFotoSeleccionada = async (file: File | null) => {
+    if (!file) return;
+    const urlLocal = URL.createObjectURL(file);
+    setPreviewUrl((anterior) => {
+      if (anterior && anterior.startsWith("blob:")) URL.revokeObjectURL(anterior);
+      return urlLocal;
+    });
+    setSubiendoFoto(true);
+    setErrorFoto(null);
+    try {
+      const url = await subirFoto(file, `mejoras/${mejora?.villaId ?? "sin-villa"}`);
+      setFotoDespuesUrl(url);
+    } catch (e) {
+      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+    } finally {
+      setSubiendoFoto(false);
+    }
   };
 
   const nombreVilla = (villaId: string) => {
@@ -66,14 +81,13 @@ export default function MejoraDetalle() {
   };
 
   const marcarResuelta = async () => {
-    if (!id || !fotoDespues) return;
+    if (!id || !fotoDespuesUrl) return;
     setProcesando(true);
     setError(null);
     try {
-      const fotoDespuesUrl = await subirFoto(fotoDespues, `mejoras/${mejora?.villaId ?? "sin-villa"}`);
       await marcarMejoraResuelta(id, fotoDespuesUrl);
       cargar();
-      setFotoDespues(null);
+      setFotoDespuesUrl(null);
       setPreviewUrl(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo marcar como resuelta.");
@@ -236,7 +250,12 @@ export default function MejoraDetalle() {
             {previewUrl ? (
               <>
                 <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
-                <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto lista: {fotoDespues?.name}</p>
+                {subiendoFoto && (
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>Subiendo foto...</p>
+                )}
+                {!subiendoFoto && fotoDespuesUrl && (
+                  <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
+                )}
               </>
             ) : (
               "Toca para tomar o adjuntar la foto de evidencia"
@@ -250,7 +269,12 @@ export default function MejoraDetalle() {
               onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
             />
           </div>
-          <button className="btn btn-primary-dark" disabled={!fotoDespues || procesando} onClick={marcarResuelta}>
+          {errorFoto && (
+            <p style={{ fontSize: 11, color: "var(--danger)", margin: "0 0 8px" }}>
+              {errorFoto} Toca la foto para intentar de nuevo.
+            </p>
+          )}
+          <button className="btn btn-primary-dark" disabled={!fotoDespuesUrl || subiendoFoto || procesando} onClick={marcarResuelta}>
             {procesando ? "Guardando..." : "Marcar como resuelta y enviar a aprobación"}
           </button>
         </div>
