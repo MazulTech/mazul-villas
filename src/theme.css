@@ -36,6 +36,31 @@ body {
   flex-direction: column;
 }
 
+/* En pantallas anchas (escritorio), esto sigue siendo una app pensada para
+   celular: en vez de estirarla o dejarla flotando sin marco, se muestra
+   como una tarjeta contenida con su propio fondo, para que se vea
+   intencional en vez de "rota". */
+@media (min-width: 640px) {
+  body {
+    background: linear-gradient(180deg, #efe3cf 0%, #e7d8bd 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .app-shell {
+    min-height: calc(100vh - 64px);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(58, 42, 30, 0.22);
+    overflow: hidden;
+  }
+
+  .topbar {
+    border-radius: 20px 20px 0 0;
+  }
+}
+
 .topbar {
   background: var(--espresso);
   color: var(--cream);
