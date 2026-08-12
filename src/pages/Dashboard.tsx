@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Villa } from "../types";
 import { listarVillasConEstado } from "../lib/data";
+import { etiquetaVilla } from "../lib/villas";
+import { useAuth } from "../contexts/AuthContext";
 
 const ESTADO_PILL: Record<string, string> = {
   lista: "pill pill-ok",
@@ -16,18 +18,21 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const { profile } = useAuth();
   const [villas, setVillas] = useState<Villa[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
-    listarVillasConEstado()
+    listarVillasConEstado(profile)
       .then((v) => activo && setVillas(v))
+      .catch((e: Error) => activo && setError(e.message))
       .finally(() => activo && setCargando(false));
     return () => {
       activo = false;
     };
-  }, []);
+  }, [profile]);
 
   const listas = villas.filter((v) => v.estadoHoy === "lista").length;
   const enProceso = villas.filter((v) => v.estadoHoy === "limpieza").length;
@@ -39,6 +44,12 @@ export default function Dashboard() {
       <p className="page-sub">
         {new Date().toLocaleDateString("es-MX", { day: "numeric", month: "long" })}
       </p>
+
+      {error && (
+        <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
+          <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+        </div>
+      )}
 
       {cargando ? (
         <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando villas...</p>
@@ -67,7 +78,7 @@ export default function Dashboard() {
               className="card"
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textDecoration: "none", color: "inherit" }}
             >
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{v.nombre}</span>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{etiquetaVilla(v)}</span>
               <span className={ESTADO_PILL[v.estadoHoy]}>{ESTADO_LABEL[v.estadoHoy]}</span>
             </Link>
           ))}

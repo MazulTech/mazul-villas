@@ -1,27 +1,44 @@
 -- Datos iniciales. Correr DESPUÉS de schema.sql.
--- Opcional: si prefieres empezar totalmente vacío, no corras este archivo
--- (la app funciona igual, solo verás las listas sin datos hasta capturar).
+-- Lista real tomada del documento "LISTA DE HUESPEDES" en Drive. Las villas
+-- sin apodo confirmado (6, 9, 10, 14, 17, 19, 20) quedan con nombre = null;
+-- la app las muestra solo como "Villa N" hasta que se les asigne apodo.
+-- Cuando abran nuevas villas, solo se agrega otra fila aqui (o desde el
+-- editor de tablas de Supabase) con el siguiente numero.
 
-insert into villas (id, nombre) values
-  ('ostion', 'Ostión'),
-  ('barracuda', 'Barracuda'),
-  ('pulpos', 'Pulpos'),
-  ('sierra', 'Sierra'),
-  ('langosta', 'Langosta'),
-  ('coral', 'Coral'),
-  ('erizo', 'Erizo'),
-  ('gallo', 'Gallo'),
-  ('pargo', 'Pargo'),
-  ('concha', 'Concha'),
-  ('cangrejo', 'Cangrejo'),
-  ('caracol', 'Caracol'),
-  ('mantarraya', 'Mantarraya')
+insert into villas (id, numero, nombre) values
+  ('villa-1', 1, 'Ostión'),
+  ('villa-2', 2, 'Sierra'),
+  ('villa-3', 3, 'Mantarraya'),
+  ('villa-4', 4, 'Cangrejo'),
+  ('villa-5', 5, 'Bozo'),
+  ('villa-6', 6, null),
+  ('villa-7', 7, 'Coral'),
+  ('villa-8', 8, 'Erizo'),
+  ('villa-9', 9, null),
+  ('villa-10', 10, null),
+  ('villa-11', 11, 'Barracuda'),
+  ('villa-12', 12, 'Pargo'),
+  ('villa-13', 13, 'Concha'),
+  ('villa-14', 14, null),
+  ('villa-15', 15, 'Langosta'),
+  ('villa-16', 16, 'Pulpos'),
+  ('villa-17', 17, null),
+  ('villa-18', 18, 'Gallo'),
+  ('villa-19', 19, null),
+  ('villa-20', 20, null),
+  ('villa-21', 21, 'Caracol')
 on conflict (id) do nothing;
 
 -- Insumos de ejemplo para dos villas, solo para probar las alertas de stock.
 insert into insumos (villa_id, nombre, stock_actual, stock_objetivo) values
-  ('ostion', 'Toallas de baño', 4, 8),
-  ('ostion', 'Shampoo amenity', 10, 10),
-  ('ostion', 'Café / cápsulas', 1, 12),
-  ('barracuda', 'Toallas de baño', 8, 8),
-  ('barracuda', 'Papel higiénico', 2, 10);
+  ('villa-1', 'Toallas de baño', 4, 8),
+  ('villa-1', 'Shampoo amenity', 10, 10),
+  ('villa-1', 'Café / cápsulas', 1, 12),
+  ('villa-11', 'Toallas de baño', 8, 8),
+  ('villa-11', 'Papel higiénico', 2, 10);
+
+-- Inventario de ejemplo (Villa 2 = Sierra, la del recorrido de hoy).
+insert into inventario_items (villa_id, zona, nombre, cantidad, condicion) values
+  ('villa-2', 'Sala', 'TV sala', 1, 'bueno'),
+  ('villa-2', 'Cocina', 'Refrigerador', 1, 'regular'),
+  ('villa-2', 'Terraza', 'Sillas de exterior', 6, 'danado');

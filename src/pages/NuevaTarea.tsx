@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
+import { subirFoto } from "../lib/storage";
 import type { Resolucion } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA, calcularUrgencia } from "../lib/urgencia";
+import { etiquetaVilla } from "../lib/villas";
+import { OTRA_ZONA, ZONAS } from "../data/zonas";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function NuevaTarea() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [villaId, setVillaId] = useState("");
-  const [zona, setZona] = useState("");
+  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(ZONAS[0]);
+  const [zonaOtra, setZonaOtra] = useState("");
+  const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
   const [descripcion, setDescripcion] = useState("");
+  const [fotoAntes, setFotoAntes] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(null);
   const [afectaAmenidad, setAfectaAmenidad] = useState<boolean | null>(null);
   const [resolucion, setResolucion] = useState<Resolucion>("equipo");
@@ -17,13 +27,28 @@ export default function NuevaTarea() {
   const [especialista, setEspecialista] = useState("");
   const [costoEstimado, setCostoEstimado] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listarVillas().then((v) => {
-      setVillas(v);
-      setVillaId(v[0]?.id ?? "");
-    });
-  }, []);
+    listarVillas(profile)
+      .then((v) => {
+        setVillas(v);
+        setVillaId(v[0]?.id ?? "");
+      })
+      .catch((e: Error) => setError(e.message));
+  }, [profile]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const onFotoSeleccionada = (file: File | null) => {
+    setFotoAntes(file);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
 
   const urgenciaCalculada =
     afectaSeguridadOperacion === null || afectaAmenidad === null
@@ -31,16 +56,23 @@ export default function NuevaTarea() {
       : calcularUrgencia(afectaSeguridadOperacion, afectaAmenidad);
 
   const puedeGuardar =
-    descripcion.trim().length > 0 && zona.trim().length > 0 && urgenciaCalculada !== null && villaId !== "";
+    descripcion.trim().length > 0 &&
+    zona.trim().length > 0 &&
+    urgenciaCalculada !== null &&
+    villaId !== "" &&
+    fotoAntes !== null;
 
   const guardar = async () => {
-    if (afectaSeguridadOperacion === null || afectaAmenidad === null) return;
+    if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntes) return;
     setGuardando(true);
+    setError(null);
     try {
+      const fotoAntesUrl = await subirFoto(fotoAntes, `mejoras/${villaId}`);
       await crearMejora({
         villaId,
         zona,
         descripcion,
+        fotoAntesUrl,
         afectaSeguridadOperacion,
         afectaAmenidad,
         resolucion,
@@ -49,6 +81,8 @@ export default function NuevaTarea() {
         costoEstimado: costoEstimado ? Number(costoEstimado) : undefined,
       });
       navigate("/mejoras");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar la tarea.");
     } finally {
       setGuardando(false);
     }
@@ -64,19 +98,52 @@ export default function NuevaTarea() {
         <select value={villaId} onChange={(e) => setVillaId(e.target.value)}>
           {villas.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.nombre}
+              {etiquetaVilla(v)}
             </option>
           ))}
         </select>
       </div>
 
-      <div className="card card-dashed" style={{ marginBottom: 10, padding: 16 }}>
-        Foto adjunta (opcional) — arrastra o toma una foto de evidencia
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">Foto "antes" (obligatoria)</label>
+        <div
+          className="card card-dashed"
+          style={{ padding: 16, cursor: "pointer", textAlign: "center" }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {previewUrl ? (
+            <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
+          ) : (
+            "Toca para tomar o adjuntar la foto de evidencia"
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: "none" }}
+            onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
+          />
+        </div>
       </div>
 
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Zona</label>
-        <input value={zona} onChange={(e) => setZona(e.target.value)} placeholder="Cocina, terraza, habitación 2..." />
+        <select value={zonaSeleccionada} onChange={(e) => setZonaSeleccionada(e.target.value)}>
+          {ZONAS.map((z) => (
+            <option key={z} value={z}>
+              {z}
+            </option>
+          ))}
+        </select>
+        {zonaSeleccionada === OTRA_ZONA && (
+          <input
+            style={{ marginTop: 6 }}
+            value={zonaOtra}
+            onChange={(e) => setZonaOtra(e.target.value)}
+            placeholder="Especifica la zona"
+          />
+        )}
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -193,6 +260,12 @@ export default function NuevaTarea() {
             <label className="field-label">Costo estimado (opcional)</label>
             <input value={costoEstimado} onChange={(e) => setCostoEstimado(e.target.value)} placeholder="$800 MXN" />
           </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
+          <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
         </div>
       )}
 
