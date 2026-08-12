@@ -283,6 +283,22 @@ textarea {
   }
 }
 
+/* Para inputs de archivo/foto disparados por click en otro elemento.
+   display:none puede hacer que algunos navegadores moviles (sobre todo
+   Safari en iPhone) no disparen onChange de forma confiable al usar la
+   camara; con esto el input sigue "presente" mientras es invisible. */
+.input-foto-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .spinner {
   width: 14px;
   height: 14px;

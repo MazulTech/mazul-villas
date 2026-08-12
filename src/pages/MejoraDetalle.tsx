@@ -234,7 +234,10 @@ export default function MejoraDetalle() {
             onClick={() => fileInputRef.current?.click()}
           >
             {previewUrl ? (
-              <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
+              <>
+                <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
+                <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto lista: {fotoDespues?.name}</p>
+              </>
             ) : (
               "Toca para tomar o adjuntar la foto de evidencia"
             )}
@@ -243,7 +246,7 @@ export default function MejoraDetalle() {
               type="file"
               accept="image/*"
               capture="environment"
-              style={{ display: "none" }}
+              className="input-foto-oculto"
               onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
             />
           </div>
