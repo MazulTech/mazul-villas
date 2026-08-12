@@ -32,9 +32,12 @@ export default function Login() {
     <div className="app-shell" style={{ justifyContent: "center" }}>
       <form onSubmit={enviar} style={{ width: "100%", maxWidth: 320, margin: "0 auto", padding: 24 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <span style={{ fontFamily: "var(--font-serif)", fontWeight: 700, letterSpacing: 4, fontSize: 22, color: "var(--espresso)" }}>
-            MAZUL
-          </span>
+          <img src="/glyph.png" alt="Mazul" width={56} height={54} style={{ marginBottom: 8 }} />
+          <div>
+            <span style={{ fontFamily: "var(--font-serif)", fontWeight: 700, letterSpacing: 4, fontSize: 22, color: "var(--espresso)" }}>
+              MAZUL
+            </span>
+          </div>
           <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0" }}>Puerto Escondido · Oaxaca</p>
         </div>
 

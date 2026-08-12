@@ -12,17 +12,7 @@ export default function Layout() {
     <div className="app-shell">
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
-            <rect width="64" height="64" rx="14" fill="var(--terra)" />
-            <path
-              d="M14 46V20.5c0-1.1.9-2 2-2h1.6c.7 0 1.35.36 1.72.96L32 39.5l12.68-20.04c.37-.6 1.02-.96 1.72-.96H48c1.1 0 2 .9 2 2V46"
-              fill="none"
-              stroke="var(--cream)"
-              strokeWidth="4.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <img src="/glyph.png" alt="" width={28} height={27} aria-hidden="true" />
           <div>
             <span className="wordmark">MAZUL</span>
             <div className="subtitle">Puerto Escondido · Oaxaca</div>
