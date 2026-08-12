@@ -2,10 +2,14 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
+import Cargando from "./components/Cargando";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Checklist from "./pages/Checklist";
 import Insumos from "./pages/Insumos";
+import AlmacenGeneral from "./pages/AlmacenGeneral";
+import NuevoInsumoCatalogo from "./pages/NuevoInsumoCatalogo";
+import RepartirInsumo from "./pages/RepartirInsumo";
 import Mejoras from "./pages/Mejoras";
 import MejoraDetalle from "./pages/MejoraDetalle";
 import NuevaTarea from "./pages/NuevaTarea";
@@ -15,7 +19,11 @@ import NuevoItemInventario from "./pages/NuevoItemInventario";
 function RequireAuth({ children }: { children: ReactNode }) {
   const { profile, cargando } = useAuth();
   if (cargando) {
-    return <p style={{ padding: 20, fontSize: 13, color: "var(--text-secondary)" }}>Cargando...</p>;
+    return (
+      <div style={{ padding: 20 }}>
+        <Cargando />
+      </div>
+    );
   }
   if (!profile) {
     return <Navigate to="/login" replace />;
@@ -38,6 +46,9 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/villa/:villaId/checklist" element={<Checklist />} />
           <Route path="/insumos" element={<Insumos />} />
+          <Route path="/almacen" element={<AlmacenGeneral />} />
+          <Route path="/almacen/nuevo" element={<NuevoInsumoCatalogo />} />
+          <Route path="/almacen/repartir" element={<RepartirInsumo />} />
           <Route path="/mejoras" element={<Mejoras />} />
           <Route path="/mejoras/nueva" element={<NuevaTarea />} />
           <Route path="/mejoras/:id" element={<MejoraDetalle />} />

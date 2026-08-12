@@ -6,6 +6,7 @@ import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeGestionarInventario } from "../lib/permissions";
+import Cargando from "../components/Cargando";
 
 export default function Inventario() {
   const { profile } = useAuth();
@@ -64,7 +65,7 @@ export default function Inventario() {
         </div>
       )}
 
-      {cargando && <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando inventario...</p>}
+      {cargando && <Cargando texto="Cargando inventario..." />}
 
       {!cargando && items.length === 0 && (
         <div className="card card-dashed">Sin items registrados para esta villa todavía.</div>

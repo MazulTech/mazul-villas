@@ -40,6 +40,10 @@ body {
   background: var(--espresso);
   color: var(--cream);
   padding: 16px 20px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .topbar .wordmark {
@@ -67,12 +71,26 @@ body {
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(58, 42, 30, 0.06);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+a.card:hover,
+div.card[onclick]:hover {
+  border-color: var(--terra);
+  box-shadow: 0 3px 10px rgba(58, 42, 30, 0.1);
+}
+
+a.card:active,
+div.card[onclick]:active {
+  transform: scale(0.99);
 }
 
 .card-dashed {
   border-style: dashed;
   text-align: center;
   color: var(--text-secondary);
+  box-shadow: none;
 }
 
 h1.page-title {
@@ -118,6 +136,20 @@ p.page-sub {
   font-size: 14px;
   font-family: var(--font-sans);
   cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn:not(:disabled):hover {
+  filter: brightness(0.94);
+}
+
+.btn:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
@@ -134,6 +166,11 @@ p.page-sub {
   background: transparent;
   color: var(--espresso);
   border: 1px solid var(--terra-dark);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: var(--sand);
+  filter: none;
 }
 
 label.field-label {
@@ -200,12 +237,35 @@ textarea {
   font-size: 10px;
   color: var(--text-muted);
   text-decoration: none;
-  padding: 4px 10px;
+  padding: 6px 10px 4px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav-item:hover {
+  color: var(--terra-dark);
 }
 
 .nav-item.active {
   color: var(--terra-dark);
   font-weight: 700;
+  background: var(--sand);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sand);
+  border-top-color: var(--terra-dark);
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
 
 .stat-grid {

@@ -4,6 +4,7 @@ import type { Villa } from "../types";
 import { listarVillasConEstado } from "../lib/data";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
+import Cargando from "../components/Cargando";
 
 const ESTADO_PILL: Record<string, string> = {
   lista: "pill pill-ok",
@@ -52,7 +53,7 @@ export default function Dashboard() {
       )}
 
       {cargando ? (
-        <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando villas...</p>
+        <Cargando texto="Cargando villas..." />
       ) : (
         <>
           <div className="stat-grid">

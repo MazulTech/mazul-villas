@@ -30,6 +30,7 @@ Reglas clave del flujo de mejoras, aplicadas tanto en la app como con un trigger
 - `src/pages/Dashboard.tsx` — estado del día por villa (lista / limpieza / incidencia), filtrado a las villas visibles del usuario.
 - `src/pages/Checklist.tsx` — checklist de turnover por villa (solo lectura para dueños).
 - `src/pages/Insumos.tsx` — stock de insumos por villa con alertas de reabasto (edición solo para administración).
+- `src/pages/AlmacenGeneral.tsx` / `NuevoInsumoCatalogo.tsx` / `RepartirInsumo.tsx` — almacén general: se compra aquí (solo administración) y de aquí se reparte a cada villa (cualquier rol menos dueño), restando del almacén y sumando al stock de esa villa en una sola operación atómica (función `repartir_insumo` en `schema.sql`).
 - `src/pages/Mejoras.tsx` / `MejoraDetalle.tsx` / `NuevaTarea.tsx` — reporte de mejoras con foto "antes" obligatoria, foto "después" al resolver, y aprobación del dueño. La urgencia **no se elige a mano**: se calcula con dos preguntas tangibles (`src/lib/urgencia.ts`):
   1. ¿Impide usar la villa con seguridad o empeora si no se atiende hoy? → **Crítico** (SLA: mismo día)
   2. ¿Afecta una amenidad que el huésped espera (A/C, wifi, alberca, cocina)? → **Operacional** (SLA: antes del próximo check-in)

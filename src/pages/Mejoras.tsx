@@ -7,6 +7,7 @@ import { CLASE_PILL_ESTADO_MEJORA, LABEL_ESTADO_MEJORA } from "../lib/estadoMejo
 import { LABEL_RESOLUCION } from "../lib/resolucion";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
+import Cargando from "../components/Cargando";
 
 export default function Mejoras() {
   const { profile } = useAuth();
@@ -63,7 +64,7 @@ export default function Mejoras() {
         </div>
       )}
 
-      {cargando && <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando mejoras...</p>}
+      {cargando && <Cargando texto="Cargando mejoras..." />}
 
       {!cargando && items.length === 0 && <div className="card card-dashed">Sin mejoras registradas.</div>}
 

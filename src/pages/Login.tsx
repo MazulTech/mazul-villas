@@ -1,12 +1,19 @@
 import { useState, type FormEvent } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
-  const { signIn, error } = useAuth();
+  const { signIn, error, profile, cargando } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  // Si el login ya funcionó (o ya habia sesion activa), mandar a la app en
+  // vez de dejar a la persona parada en la pantalla de login.
+  if (!cargando && profile) {
+    return <Navigate to="/" replace />;
+  }
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,12 +39,22 @@ export default function Login() {
         </div>
 
         <div style={{ marginBottom: 10 }}>
-          <label className="field-label">Correo</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
+          <label className="field-label" htmlFor="login-email">Correo</label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="username"
+          />
         </div>
         <div style={{ marginBottom: 14 }}>
-          <label className="field-label">Contraseña</label>
+          <label className="field-label" htmlFor="login-password">Contraseña</label>
           <input
+            id="login-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

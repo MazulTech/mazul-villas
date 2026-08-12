@@ -3,10 +3,11 @@ import {
   villas as mockVillas,
   checklist as mockChecklist,
   insumos as mockInsumos,
+  almacenGeneral as mockAlmacen,
   mejoras as mockMejoras,
   inventario as mockInventario,
 } from "../data/mockData";
-import type { ChecklistTarea, Condicion, EstadoMejora, InsumoStock, InventarioItem, Mejora, Profile, Resolucion, Villa } from "../types";
+import type { ChecklistTarea, Condicion, EstadoMejora, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Profile, Resolucion, Villa } from "../types";
 import { calcularUrgencia } from "./urgencia";
 import { villasVisibles } from "./permissions";
 
@@ -115,6 +116,80 @@ export async function listarInsumos(villaId: string): Promise<InsumoStock[]> {
     stockActual: d.stock_actual,
     stockObjetivo: d.stock_objetivo,
   }));
+}
+
+// ============================================================
+// Almacen general: se compra aqui (administracion) y de aqui se reparte a
+// cada villa. El reparto resta del almacen y suma al stock de esa villa en
+// una sola operacion atomica (funcion de base de datos repartir_insumo, ver
+// supabase/schema.sql) para que nunca queden descuadrados.
+// ============================================================
+
+export async function listarAlmacen(): Promise<InsumoCatalogo[]> {
+  if (!supabaseConfigured || !supabase) {
+    return mockAlmacen;
+  }
+  const { data, error } = await supabase
+    .from("insumos_catalogo")
+    .select("id, nombre, unidad, stock_actual, stock_minimo")
+    .order("nombre");
+  if (error) throw error;
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    nombre: d.nombre,
+    unidad: d.unidad ?? undefined,
+    stockActual: d.stock_actual,
+    stockMinimo: d.stock_minimo,
+  }));
+}
+
+export interface NuevoInsumoCatalogoInput {
+  nombre: string;
+  unidad?: string;
+  stockActual: number;
+  stockMinimo: number;
+}
+
+export async function crearInsumoCatalogo(input: NuevoInsumoCatalogoInput): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Insumo de catalogo creado (demo, no persistido):", input);
+    return;
+  }
+  const { error } = await supabase.from("insumos_catalogo").insert({
+    nombre: input.nombre,
+    unidad: input.unidad || null,
+    stock_actual: input.stockActual,
+    stock_minimo: input.stockMinimo,
+  });
+  if (error) throw error;
+}
+
+// Compra: aumenta el stock del almacen general (solo administracion, ver RLS).
+export async function registrarCompraInsumo(insumoId: string, cantidad: number): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Compra registrada (demo, no persistida):", { insumoId, cantidad });
+    return;
+  }
+  const { error } = await supabase.rpc("registrar_compra_insumo", {
+    p_insumo_id: insumoId,
+    p_cantidad: cantidad,
+  });
+  if (error) throw error;
+}
+
+// Reparto: resta del almacen general y suma al stock de la villa destino
+// (creando su fila de insumo si todavia no la tenia).
+export async function repartirInsumo(villaId: string, insumoId: string, cantidad: number): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Reparto registrado (demo, no persistido):", { villaId, insumoId, cantidad });
+    return;
+  }
+  const { error } = await supabase.rpc("repartir_insumo", {
+    p_villa_id: villaId,
+    p_insumo_id: insumoId,
+    p_cantidad: cantidad,
+  });
+  if (error) throw error;
 }
 
 export async function listarMejoras(villaId?: string, profile?: Profile | null): Promise<Mejora[]> {

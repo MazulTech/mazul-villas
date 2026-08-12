@@ -37,6 +37,15 @@ insert into insumos (villa_id, nombre, stock_actual, stock_objetivo) values
   ('villa-11', 'Toallas de baño', 8, 8),
   ('villa-11', 'Papel higiénico', 2, 10);
 
+-- Almacén general de ejemplo: catálogo central del que se reparte a las
+-- villas (ver /almacen en la app y la función repartir_insumo).
+insert into insumos_catalogo (nombre, unidad, stock_actual, stock_minimo) values
+  ('Toallas de baño', 'piezas', 46, 20),
+  ('Shampoo amenity', 'piezas', 80, 40),
+  ('Café / cápsulas', 'cajas', 6, 15),
+  ('Papel higiénico', 'rollos', 30, 40)
+on conflict (nombre) do nothing;
+
 -- Inventario de ejemplo (Villa 2 = Sierra, la del recorrido de hoy).
 insert into inventario_items (villa_id, zona, nombre, cantidad, condicion) values
   ('villa-2', 'Sala', 'TV sala', 1, 'bueno'),

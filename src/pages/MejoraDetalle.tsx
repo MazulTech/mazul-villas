@@ -16,6 +16,7 @@ import { LABEL_RESOLUCION } from "../lib/resolucion";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeAprobarORechazar, puedeMarcarResuelta, puedeVerVilla } from "../lib/permissions";
+import Cargando from "../components/Cargando";
 
 export default function MejoraDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -110,7 +111,7 @@ export default function MejoraDetalle() {
   };
 
   if (cargando) {
-    return <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando tarea...</p>;
+    return <Cargando texto="Cargando tarea..." />;
   }
 
   if (!mejora) {

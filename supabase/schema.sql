@@ -26,6 +26,29 @@ create table if not exists insumos (
   actualizado_en timestamptz not null default now()
 );
 
+-- Almacen general: catalogo central de insumos con su stock disponible. Se
+-- compra aqui (administracion) y de aqui se reparte a cada villa (ver
+-- funcion repartir_insumo mas abajo, que mueve stock de esta tabla a
+-- `insumos` de forma atomica).
+create table if not exists insumos_catalogo (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null unique,
+  unidad text,
+  stock_actual int not null default 0,
+  stock_minimo int not null default 0,
+  actualizado_en timestamptz not null default now()
+);
+
+-- Bitacora de cada reparto del almacen general a una villa.
+create table if not exists repartos_insumos (
+  id uuid primary key default gen_random_uuid(),
+  villa_id text references villas(id) not null,
+  insumo_id uuid references insumos_catalogo(id) not null,
+  cantidad int not null check (cantidad > 0),
+  creado_por uuid references auth.users(id) default auth.uid(),
+  creado_en timestamptz not null default now()
+);
+
 -- La urgencia se calcula en la app (ver src/lib/urgencia.ts) a partir de
 -- afecta_seguridad_operacion y afecta_amenidad, nunca se captura a mano.
 -- foto_antes_url es obligatoria (se valida en el formulario); foto_despues_url
@@ -96,6 +119,8 @@ create table if not exists profiles (
 alter table villas enable row level security;
 alter table checklist_items enable row level security;
 alter table insumos enable row level security;
+alter table insumos_catalogo enable row level security;
+alter table repartos_insumos enable row level security;
 alter table mejoras enable row level security;
 alter table incidencias enable row level security;
 alter table inventario_items enable row level security;
@@ -195,6 +220,23 @@ create policy "insumos_admin_write" on insumos for all
   using (public.es_admin())
   with check (public.es_admin());
 
+-- almacen general: no es informacion por villa (el dueno no lo ve, es
+-- operativo interno). El resto de roles lo consulta; solo administracion
+-- lo edita directamente (altas de catalogo, registrar compra). El reparto
+-- a una villa se hace con la funcion repartir_insumo (mas abajo), que
+-- puede ajustar el stock aunque quien la llame no sea administracion.
+drop policy if exists "almacen_select" on insumos_catalogo;
+create policy "almacen_select" on insumos_catalogo for select
+  using (public.mi_rol() is not null and public.mi_rol() != 'dueno');
+drop policy if exists "almacen_admin_write" on insumos_catalogo;
+create policy "almacen_admin_write" on insumos_catalogo for all
+  using (public.es_admin())
+  with check (public.es_admin());
+
+drop policy if exists "repartos_select" on repartos_insumos;
+create policy "repartos_select" on repartos_insumos for select
+  using (public.mi_rol() is not null and public.mi_rol() != 'dueno');
+
 -- mejoras: se ven segun la villa. Cualquier rol autenticado puede crear un
 -- caso para una villa que pueda ver. Las reglas de quien puede marcar
 -- resuelto o aprobar/rechazar se validan ademas con un trigger (mas abajo),
@@ -272,3 +314,97 @@ drop trigger if exists trg_mejoras_validar_transicion on mejoras;
 create trigger trg_mejoras_validar_transicion
   before update on mejoras
   for each row execute function public.mejoras_validar_transicion();
+
+-- ============================================================
+-- Almacen general: compra y reparto.
+-- Ambas funciones son SECURITY DEFINER para poder ajustar el stock del
+-- almacen aunque quien las llame no tenga permiso de escritura directa
+-- sobre insumos_catalogo (por ejemplo, limpieza puede repartir aunque no
+-- pueda editar el catalogo directamente). Cada una valida el rol por su
+-- cuenta antes de mover cualquier stock.
+-- ============================================================
+
+-- Solo administracion/supervisor pueden registrar una compra (aumenta el
+-- stock del almacen general).
+create or replace function public.registrar_compra_insumo(p_insumo_id uuid, p_cantidad int)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_cantidad <= 0 then
+    raise exception 'La cantidad debe ser mayor a cero.';
+  end if;
+  if not public.es_admin() then
+    raise exception 'Solo administracion puede registrar compras.';
+  end if;
+
+  update insumos_catalogo
+    set stock_actual = stock_actual + p_cantidad, actualizado_en = now()
+    where id = p_insumo_id;
+
+  if not found then
+    raise exception 'Insumo no encontrado en el almacen.';
+  end if;
+end;
+$$;
+
+grant execute on function public.registrar_compra_insumo(uuid, int) to authenticated;
+
+-- Cualquier rol que no sea dueno puede repartir: resta del almacen general
+-- y suma al stock de la villa destino (creando su fila de insumo si
+-- todavia no la tenia), en una sola transaccion.
+create or replace function public.repartir_insumo(p_villa_id text, p_insumo_id uuid, p_cantidad int)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_nombre text;
+  v_stock_almacen int;
+begin
+  if p_cantidad <= 0 then
+    raise exception 'La cantidad debe ser mayor a cero.';
+  end if;
+
+  if public.mi_rol() is null or public.mi_rol() = 'dueno' then
+    raise exception 'No tienes permiso para repartir insumos.';
+  end if;
+
+  if not public.villa_visible(p_villa_id) then
+    raise exception 'No tienes acceso a esa villa.';
+  end if;
+
+  select nombre, stock_actual into v_nombre, v_stock_almacen
+    from insumos_catalogo where id = p_insumo_id
+    for update;
+
+  if v_nombre is null then
+    raise exception 'Insumo no encontrado en el almacen.';
+  end if;
+
+  if v_stock_almacen < p_cantidad then
+    raise exception 'No hay suficiente stock en el almacen general (disponible: %).', v_stock_almacen;
+  end if;
+
+  update insumos_catalogo
+    set stock_actual = stock_actual - p_cantidad, actualizado_en = now()
+    where id = p_insumo_id;
+
+  insert into repartos_insumos (villa_id, insumo_id, cantidad, creado_por)
+    values (p_villa_id, p_insumo_id, p_cantidad, auth.uid());
+
+  update insumos
+    set stock_actual = stock_actual + p_cantidad, actualizado_en = now()
+    where villa_id = p_villa_id and nombre = v_nombre;
+
+  if not found then
+    insert into insumos (villa_id, nombre, stock_actual, stock_objetivo)
+      values (p_villa_id, v_nombre, p_cantidad, p_cantidad);
+  end if;
+end;
+$$;
+
+grant execute on function public.repartir_insumo(text, uuid, int) to authenticated;

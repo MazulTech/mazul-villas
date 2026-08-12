@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { listarInsumos, listarVillas, type VillaBasica } from "../lib/data";
 import type { InsumoStock } from "../types";
 import { etiquetaVilla } from "../lib/villas";
+import { nivelStock } from "../lib/stock";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeGestionarInsumos } from "../lib/permissions";
-
-function nivelStock(actual: number, objetivo: number) {
-  const ratio = objetivo === 0 ? 1 : actual / objetivo;
-  if (ratio <= 0.15) return { label: "Reabastecer", clase: "pill pill-danger" };
-  if (ratio < 0.7) return { label: "Bajo", clase: "pill pill-warn" };
-  return { label: "Ok", clase: "pill pill-ok" };
-}
+import { puedeGestionarInsumos, puedeRepartirInsumos } from "../lib/permissions";
+import Cargando from "../components/Cargando";
 
 export default function Insumos() {
   const { profile } = useAuth();
   const gestionar = puedeGestionarInsumos(profile);
+  const verAlmacen = puedeRepartirInsumos(profile);
   const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [villaId, setVillaId] = useState<string>("");
   const [items, setItems] = useState<InsumoStock[]>([]);
@@ -44,6 +41,15 @@ export default function Insumos() {
       <h1 className="page-title">Insumos</h1>
       <p className="page-sub">Stock por villa, con alertas de reabasto</p>
 
+      {verAlmacen && (
+        <Link
+          to="/almacen"
+          style={{ display: "inline-block", fontSize: 12, color: "var(--terra-dark)", marginBottom: 14, textDecoration: "underline" }}
+        >
+          Ver almacén general →
+        </Link>
+      )}
+
       <div style={{ marginBottom: 14 }}>
         <label className="field-label">Villa</label>
         <select value={villaId} onChange={(e) => setVillaId(e.target.value)}>
@@ -61,7 +67,7 @@ export default function Insumos() {
         </div>
       )}
 
-      {cargando && <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando insumos...</p>}
+      {cargando && <Cargando texto="Cargando insumos..." />}
 
       {!cargando && items.length === 0 && (
         <div className="card card-dashed">Sin insumos registrados para esta villa.</div>

@@ -5,6 +5,7 @@ import type { ChecklistTarea } from "../types";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeEditarChecklist } from "../lib/permissions";
+import Cargando from "../components/Cargando";
 
 export default function Checklist() {
   const { villaId = "" } = useParams();
@@ -46,7 +47,7 @@ export default function Checklist() {
   };
 
   if (cargando) {
-    return <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Cargando checklist...</p>;
+    return <Cargando texto="Cargando checklist..." />;
   }
 
   if (error) {

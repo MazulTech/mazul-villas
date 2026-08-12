@@ -58,6 +58,17 @@ export interface InsumoStock {
   stockObjetivo: number;
 }
 
+// Catalogo del almacen general: se compra aqui y de aqui se reparte a cada
+// villa (ver repartirInsumo en src/lib/data.ts). El stock por villa
+// (InsumoStock arriba) refleja lo que ya se entrego a esa villa.
+export interface InsumoCatalogo {
+  id: string;
+  nombre: string;
+  unidad?: string;
+  stockActual: number;
+  stockMinimo: number;
+}
+
 export interface ChecklistTarea {
   id: string;
   villaId: string;

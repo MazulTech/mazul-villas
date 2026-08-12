@@ -1,4 +1,4 @@
-import type { ChecklistTarea, InsumoStock, InventarioItem, Mejora, Villa } from "../types";
+import type { ChecklistTarea, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Villa } from "../types";
 import { calcularUrgencia } from "../lib/urgencia";
 
 // Coincide con supabase/seed.sql: mismos ids, numero y apodo (o null si la
@@ -49,6 +49,15 @@ export const insumos: InsumoStock[] = [
   { id: "3", villaId: "villa-1", nombre: "Café / cápsulas", stockActual: 1, stockObjetivo: 12 },
   { id: "4", villaId: "villa-11", nombre: "Toallas de baño", stockActual: 8, stockObjetivo: 8 },
   { id: "5", villaId: "villa-11", nombre: "Papel higiénico", stockActual: 2, stockObjetivo: 10 },
+];
+
+// Almacen general: se compra aqui (administracion) y de aqui se reparte a
+// cada villa (limpieza/mantenimiento/administracion). Ver repartirInsumo.
+export const almacenGeneral: InsumoCatalogo[] = [
+  { id: "cat-1", nombre: "Toallas de baño", unidad: "piezas", stockActual: 46, stockMinimo: 20 },
+  { id: "cat-2", nombre: "Shampoo amenity", unidad: "piezas", stockActual: 80, stockMinimo: 40 },
+  { id: "cat-3", nombre: "Café / cápsulas", unidad: "cajas", stockActual: 6, stockMinimo: 15 },
+  { id: "cat-4", nombre: "Papel higiénico", unidad: "rollos", stockActual: 30, stockMinimo: 40 },
 ];
 
 function mejora(

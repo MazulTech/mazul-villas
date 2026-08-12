@@ -60,6 +60,14 @@ export function puedeGestionarInsumos(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 
+// Almacen general: administracion/supervisor compran y agregan stock al
+// almacen. Limpieza y mantenimiento tambien pueden repartir de ahi a una
+// villa (y por eso ven el almacen); el dueno no ve esto, es un tema
+// operativo interno, no de su villa.
+export function puedeRepartirInsumos(profile: Profile | null): boolean {
+  return !esDueno(profile) && !!profile;
+}
+
 // Inventario: administracion, supervisor y mantenimiento pueden agregar o
 // actualizar items. Limpieza y dueno solo consultan.
 export function puedeGestionarInventario(profile: Profile | null): boolean {
