@@ -408,3 +408,23 @@ end;
 $$;
 
 grant execute on function public.repartir_insumo(text, uuid, int) to authenticated;
+
+-- ============================================================
+-- Storage: bucket para las fotos de evidencia (checklist, mejoras antes/
+-- despues, incidencias, inventario). Publico para que la foto se pueda ver
+-- directo con su URL guardada en la tabla, sin necesitar sesion.
+-- src/lib/storage.ts sube los archivos aqui.
+-- ============================================================
+insert into storage.buckets (id, name, public)
+  values ('evidencias', 'evidencias', true)
+  on conflict (id) do update set public = true;
+
+drop policy if exists "evidencias_insert" on storage.objects;
+create policy "evidencias_insert" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'evidencias');
+
+drop policy if exists "evidencias_select" on storage.objects;
+create policy "evidencias_select" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'evidencias');
