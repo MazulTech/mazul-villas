@@ -55,12 +55,15 @@ export default function NuevaTarea() {
       ? null
       : calcularUrgencia(afectaSeguridadOperacion, afectaAmenidad);
 
-  const puedeGuardar =
-    descripcion.trim().length > 0 &&
-    zona.trim().length > 0 &&
-    urgenciaCalculada !== null &&
-    villaId !== "" &&
-    fotoAntes !== null;
+  const faltantes: string[] = [];
+  if (villaId === "") faltantes.push("elegir la villa");
+  if (!fotoAntes) faltantes.push('la foto "antes"');
+  if (zona.trim().length === 0) faltantes.push("la zona");
+  if (descripcion.trim().length === 0) faltantes.push("la descripción");
+  if (afectaSeguridadOperacion === null) faltantes.push("responder si afecta seguridad/operación");
+  else if (afectaSeguridadOperacion === false && afectaAmenidad === null) faltantes.push("responder si afecta una amenidad");
+
+  const puedeGuardar = faltantes.length === 0;
 
   const guardar = async () => {
     if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntes) return;
@@ -266,6 +269,12 @@ export default function NuevaTarea() {
       {error && (
         <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
           <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+        </div>
+      )}
+
+      {faltantes.length > 0 && (
+        <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0 }}>Falta: {faltantes.join(", ")}.</p>
         </div>
       )}
 
