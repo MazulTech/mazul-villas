@@ -8,35 +8,109 @@ import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
 import { useAuth } from "../contexts/AuthContext";
 
+// Si el celular bloquea la pantalla, el navegador puede recargar la
+// pestaña por completo al volver (para liberar memoria), lo que borra
+// el estado de React. No se puede guardar la foto en sí (no es texto),
+// pero sí el resto del formulario, para no perder todo el trabajo.
+const CLAVE_BORRADOR = "mazul-borrador-nueva-tarea";
+
+interface Borrador {
+  villaId: string;
+  zonaSeleccionada: string;
+  zonaOtra: string;
+  descripcion: string;
+  afectaSeguridadOperacion: boolean | null;
+  afectaAmenidad: boolean | null;
+  resolucion: Resolucion;
+  materialNecesario: string;
+  especialista: string;
+  costoEstimado: string;
+}
+
+function leerBorrador(): Borrador | null {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_BORRADOR);
+    return crudo ? (JSON.parse(crudo) as Borrador) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function NuevaTarea() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const borradorInicial = useRef(leerBorrador()).current;
   const [villas, setVillas] = useState<VillaBasica[]>([]);
-  const [villaId, setVillaId] = useState("");
-  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(ZONAS[0]);
-  const [zonaOtra, setZonaOtra] = useState("");
+  const [villaId, setVillaId] = useState(borradorInicial?.villaId ?? "");
+  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(borradorInicial?.zonaSeleccionada ?? ZONAS[0]);
+  const [zonaOtra, setZonaOtra] = useState(borradorInicial?.zonaOtra ?? "");
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
-  const [descripcion, setDescripcion] = useState("");
+  const [descripcion, setDescripcion] = useState(borradorInicial?.descripcion ?? "");
   const [fotoAntes, setFotoAntes] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(null);
-  const [afectaAmenidad, setAfectaAmenidad] = useState<boolean | null>(null);
-  const [resolucion, setResolucion] = useState<Resolucion>("equipo");
-  const [materialNecesario, setMaterialNecesario] = useState("");
-  const [especialista, setEspecialista] = useState("");
-  const [costoEstimado, setCostoEstimado] = useState("");
+  const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(
+    borradorInicial?.afectaSeguridadOperacion ?? null
+  );
+  const [afectaAmenidad, setAfectaAmenidad] = useState<boolean | null>(borradorInicial?.afectaAmenidad ?? null);
+  const [resolucion, setResolucion] = useState<Resolucion>(borradorInicial?.resolucion ?? "equipo");
+  const [materialNecesario, setMaterialNecesario] = useState(borradorInicial?.materialNecesario ?? "");
+  const [especialista, setEspecialista] = useState(borradorInicial?.especialista ?? "");
+  const [costoEstimado, setCostoEstimado] = useState(borradorInicial?.costoEstimado ?? "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [huboBorrador] = useState(borradorInicial !== null);
 
   useEffect(() => {
     listarVillas(profile)
       .then((v) => {
         setVillas(v);
-        setVillaId(v[0]?.id ?? "");
+        setVillaId((actual) => actual || v[0]?.id || "");
       })
       .catch((e: Error) => setError(e.message));
   }, [profile]);
+
+  // Guarda un borrador con cada cambio (todo excepto la foto, que no se
+  // puede persistir en localStorage). Si se recarga la página, estos
+  // valores se recuperan solos.
+  useEffect(() => {
+    const borrador: Borrador = {
+      villaId,
+      zonaSeleccionada,
+      zonaOtra,
+      descripcion,
+      afectaSeguridadOperacion,
+      afectaAmenidad,
+      resolucion,
+      materialNecesario,
+      especialista,
+      costoEstimado,
+    };
+    try {
+      window.localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(borrador));
+    } catch {
+      // si localStorage no está disponible, simplemente no persistimos
+    }
+  }, [
+    villaId,
+    zonaSeleccionada,
+    zonaOtra,
+    descripcion,
+    afectaSeguridadOperacion,
+    afectaAmenidad,
+    resolucion,
+    materialNecesario,
+    especialista,
+    costoEstimado,
+  ]);
+
+  const borrarBorrador = () => {
+    try {
+      window.localStorage.removeItem(CLAVE_BORRADOR);
+    } catch {
+      // sin acción si no hay localStorage
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -83,6 +157,7 @@ export default function NuevaTarea() {
         especialistaNecesario: especialista || undefined,
         costoEstimado: costoEstimado ? Number(costoEstimado) : undefined,
       });
+      borrarBorrador();
       navigate("/mejoras");
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar la tarea.");
@@ -95,6 +170,14 @@ export default function NuevaTarea() {
     <div>
       <h1 className="page-title">Nueva tarea de mejora</h1>
       <p className="page-sub">Aplica para cualquier villa, no solo la del recorrido de hoy</p>
+
+      {huboBorrador && (
+        <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+            Recuperamos lo que llevabas escrito. Vuelve a tomar la foto "antes" para poder guardar.
+          </p>
+        </div>
+      )}
 
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Villa</label>
