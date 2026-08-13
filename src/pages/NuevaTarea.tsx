@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
+import { mensajeError } from "../lib/errores";
 import type { Resolucion } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA, calcularUrgencia } from "../lib/urgencia";
 import { etiquetaVilla } from "../lib/villas";
@@ -134,7 +135,7 @@ export default function NuevaTarea() {
       const url = await subirFoto(file, `mejoras/${villaId || "sin-villa"}`);
       setFotoAntesUrl(url);
     } catch (e) {
-      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+      setErrorFoto(mensajeError(e, "No se pudo subir la foto, intenta de nuevo."));
       setPreviewUrl(fotoAntesUrl);
     } finally {
       setSubiendoFoto(false);
@@ -177,7 +178,7 @@ export default function NuevaTarea() {
       borrarBorrador();
       navigate("/mejoras");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar la tarea.");
+      setError(mensajeError(e, "No se pudo guardar la tarea."));
     } finally {
       setGuardando(false);
     }

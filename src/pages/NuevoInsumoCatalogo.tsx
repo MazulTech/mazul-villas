@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { crearInsumoCatalogo } from "../lib/data";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeGestionarInsumos } from "../lib/permissions";
+import { mensajeError } from "../lib/errores";
 
 export default function NuevoInsumoCatalogo() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function NuevoInsumoCatalogo() {
       });
       navigate("/almacen");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar el insumo.");
+      setError(mensajeError(e, "No se pudo guardar el insumo."));
     } finally {
       setGuardando(false);
     }

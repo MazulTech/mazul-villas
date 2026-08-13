@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { listarAlmacen, registrarCompraInsumo } from "../lib/data";
 import type { InsumoCatalogo } from "../types";
 import { nivelStock } from "../lib/stock";
+import { mensajeError } from "../lib/errores";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeGestionarInsumos, puedeRepartirInsumos } from "../lib/permissions";
 import Cargando from "../components/Cargando";
@@ -37,7 +38,7 @@ export default function AlmacenGeneral() {
       setCantidades((prev) => ({ ...prev, [id]: "" }));
       cargar();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo registrar la compra.");
+      setError(mensajeError(e, "No se pudo registrar la compra."));
     } finally {
       setComprando(null);
     }

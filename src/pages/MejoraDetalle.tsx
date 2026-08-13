@@ -9,6 +9,7 @@ import {
   type VillaBasica,
 } from "../lib/data";
 import { subirFoto } from "../lib/storage";
+import { mensajeError } from "../lib/errores";
 import type { Mejora } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA } from "../lib/urgencia";
 import { CLASE_PILL_ESTADO_MEJORA, LABEL_ESTADO_MEJORA } from "../lib/estadoMejora";
@@ -69,7 +70,7 @@ export default function MejoraDetalle() {
       const url = await subirFoto(file, `mejoras/${mejora?.villaId ?? "sin-villa"}`);
       setFotoDespuesUrl(url);
     } catch (e) {
-      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+      setErrorFoto(mensajeError(e, "No se pudo subir la foto, intenta de nuevo."));
     } finally {
       setSubiendoFoto(false);
     }
@@ -90,7 +91,7 @@ export default function MejoraDetalle() {
       setFotoDespuesUrl(null);
       setPreviewUrl(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo marcar como resuelta.");
+      setError(mensajeError(e, "No se pudo marcar como resuelta."));
     } finally {
       setProcesando(false);
     }
@@ -104,7 +105,7 @@ export default function MejoraDetalle() {
       await aprobarMejora(id);
       cargar();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo aprobar la tarea.");
+      setError(mensajeError(e, "No se pudo aprobar la tarea."));
     } finally {
       setProcesando(false);
     }
@@ -118,7 +119,7 @@ export default function MejoraDetalle() {
       await rechazarMejora(id);
       cargar();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo rechazar la tarea.");
+      setError(mensajeError(e, "No se pudo rechazar la tarea."));
     } finally {
       setProcesando(false);
     }

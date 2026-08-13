@@ -5,6 +5,7 @@ import type { InsumoCatalogo } from "../types";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeRepartirInsumos } from "../lib/permissions";
+import { mensajeError } from "../lib/errores";
 
 export default function RepartirInsumo() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export default function RepartirInsumo() {
       await repartirInsumo(villaId, insumoId, cantidadNum);
       navigate("/almacen");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo registrar el reparto.");
+      setError(mensajeError(e, "No se pudo registrar el reparto."));
     } finally {
       setGuardando(false);
     }

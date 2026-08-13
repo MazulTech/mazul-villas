@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { mensajeError } from "../lib/errores";
 
 export default function Login() {
   const { signIn, error, profile, cargando } = useAuth();
@@ -22,7 +23,7 @@ export default function Login() {
     try {
       await signIn(email, password);
     } catch (err) {
-      setErrorLocal(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
+      setErrorLocal(mensajeError(err, "No se pudo iniciar sesión."));
     } finally {
       setEnviando(false);
     }

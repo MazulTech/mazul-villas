@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { crearInventarioItem, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
+import { mensajeError } from "../lib/errores";
 import type { Condicion } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
@@ -59,7 +60,7 @@ export default function NuevoItemInventario() {
       const url = await subirFoto(file, `inventario/${villaId || "sin-villa"}`);
       setFotoUrl(url);
     } catch (e) {
-      setErrorFoto(e instanceof Error ? e.message : "No se pudo subir la foto, intenta de nuevo.");
+      setErrorFoto(mensajeError(e, "No se pudo subir la foto, intenta de nuevo."));
     } finally {
       setSubiendoFoto(false);
     }
@@ -82,7 +83,7 @@ export default function NuevoItemInventario() {
       });
       navigate("/inventario");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar el item.");
+      setError(mensajeError(e, "No se pudo guardar el item."));
     } finally {
       setGuardando(false);
     }
