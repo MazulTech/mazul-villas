@@ -77,9 +77,56 @@ create table if not exists mejoras (
   aprobado_en timestamptz
 );
 
+-- Por si la tabla 'mejoras' ya existia de una version anterior del schema
+-- (de antes del flujo antes/despues + aprobacion): "create table if not
+-- exists" de arriba NO le agrega columnas nuevas a una tabla que ya existe,
+-- asi que sin esto la tabla se queda sin foto_antes_url y companeras,
+-- rompiendo el guardado de tareas con el error "could not find column X
+-- in the schema cache". Este bloque repara esa tabla vieja sin duplicar
+-- nada si la tabla ya esta al dia (create table if not exists ya la creo
+-- completa en una instalacion nueva).
+alter table mejoras add column if not exists foto_antes_url text;
+update mejoras set foto_antes_url = coalesce(foto_antes_url, '');
+alter table mejoras alter column foto_antes_url set not null;
+
+alter table mejoras add column if not exists foto_despues_url text;
+
+alter table mejoras add column if not exists afecta_seguridad_operacion boolean;
+update mejoras set afecta_seguridad_operacion = coalesce(afecta_seguridad_operacion, false);
+alter table mejoras alter column afecta_seguridad_operacion set not null;
+alter table mejoras alter column afecta_seguridad_operacion set default false;
+
+alter table mejoras add column if not exists afecta_amenidad boolean;
+update mejoras set afecta_amenidad = coalesce(afecta_amenidad, false);
+alter table mejoras alter column afecta_amenidad set not null;
+alter table mejoras alter column afecta_amenidad set default false;
+
+alter table mejoras add column if not exists resolucion text;
+update mejoras set resolucion = coalesce(resolucion, 'equipo');
+alter table mejoras alter column resolucion set not null;
+alter table mejoras alter column resolucion set default 'equipo';
+
+alter table mejoras add column if not exists material_necesario text;
+alter table mejoras add column if not exists especialista_necesario text;
+alter table mejoras add column if not exists costo_estimado numeric;
+alter table mejoras add column if not exists resuelto_en timestamptz;
+alter table mejoras add column if not exists aprobado_en timestamptz;
+alter table mejoras add column if not exists creado_por uuid references auth.users(id);
+
 -- Por si la tabla ya existia de una version anterior sin este default
 -- (create table if not exists no lo agrega a tablas ya creadas).
 alter table mejoras alter column creado_por set default auth.uid();
+
+-- Nombramos las constraints explicitamente para poder actualizarlas sin
+-- duplicar ni tronar si ya existian (mismo nombre que Postgres genera
+-- automaticamente al crear la tabla desde cero, asi que es un no-op ahi).
+alter table mejoras drop constraint if exists mejoras_resolucion_check;
+alter table mejoras add constraint mejoras_resolucion_check
+  check (resolucion in ('equipo', 'materiales', 'contratar'));
+
+alter table mejoras drop constraint if exists mejoras_estado_check;
+alter table mejoras add constraint mejoras_estado_check
+  check (estado in ('pendiente', 'en_proceso', 'esperando_aprobacion', 'aprobada', 'rechazada'));
 
 create table if not exists incidencias (
   id uuid primary key default gen_random_uuid(),
