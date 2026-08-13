@@ -239,9 +239,14 @@ export default function NuevaTarea() {
           />
         </div>
         {errorFoto && (
-          <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 0" }}>
-            {errorFoto} Toca la foto para intentar de nuevo.
-          </p>
+          <div className="card" style={{ borderColor: "var(--danger)", marginTop: 8, marginBottom: 0 }}>
+            <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>
+              No se pudo subir la foto: {errorFoto}
+            </p>
+            <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+              Toca la foto para intentar de nuevo.
+            </p>
+          </div>
         )}
       </div>
 
