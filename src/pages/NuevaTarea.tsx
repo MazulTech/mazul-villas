@@ -363,8 +363,13 @@ export default function NuevaTarea() {
       {resolucion === "materiales" && (
         <div style={{ background: "var(--sand)", borderRadius: 8, padding: 12, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label className="field-label">Material o pieza necesaria</label>
-            <input value={materialNecesario} onChange={(e) => setMaterialNecesario(e.target.value)} placeholder="Llave mezcladora para fregadero" />
+            <label className="field-label">Materiales o piezas necesarias (uno por línea si son varios)</label>
+            <textarea
+              rows={2}
+              value={materialNecesario}
+              onChange={(e) => setMaterialNecesario(e.target.value)}
+              placeholder={"Llave mezcladora para fregadero\nTubo PVC 2\"\nPegamento"}
+            />
           </div>
           <div>
             <label className="field-label">Costo estimado (opcional)</label>

@@ -377,8 +377,9 @@ export default function MejoraDetalle() {
             ) : (
               <>
                 {mejora.materialNecesario && (
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 2px" }}>
-                    Material: {mejora.materialNecesario}
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 2px", whiteSpace: "pre-line" }}>
+                    Materiales:{"\n"}
+                    {mejora.materialNecesario}
                   </p>
                 )}
                 {mejora.especialistaNecesario && (
@@ -475,8 +476,13 @@ export default function MejoraDetalle() {
 
             {resolucionEdit === "materiales" && (
               <div style={{ marginBottom: 8 }}>
-                <label className="field-label">Material o pieza necesaria</label>
-                <input value={materialEdit} onChange={(e) => setMaterialEdit(e.target.value)} placeholder="Llave mezcladora para fregadero" />
+                <label className="field-label">Materiales o piezas necesarias (uno por línea si son varios)</label>
+                <textarea
+                  rows={3}
+                  value={materialEdit}
+                  onChange={(e) => setMaterialEdit(e.target.value)}
+                  placeholder={"Llave mezcladora para fregadero\nTubo PVC 2\"\nPegamento"}
+                />
               </div>
             )}
             {resolucionEdit === "contratar" && (
