@@ -41,6 +41,19 @@ export interface Mejora {
   materialNecesario?: string;
   especialistaNecesario?: string;
   costoEstimado?: number;
+  // Cotizacion: cuando resolucion no es "equipo", mantenimiento/admin suben
+  // foto del producto y proveedor/link antes de comprar. Administracion
+  // aprueba la cotizacion; hasta entonces el dueno no ve estos detalles y
+  // el equipo no puede marcar la tarea como resuelta (ver permissions.ts).
+  fotoCotizacionUrl?: string;
+  proveedorOLink?: string;
+  cotizacionAprobada: boolean;
+  cotizacionAprobadaEn?: string;
+  // Pago/compra confirmado por el dueno (quien paga) o administracion.
+  // El equipo solo puede empezar a trabajar (marcar la tarea como
+  // resuelta) cuando la cotizacion esta aprobada Y pagada.
+  cotizacionPagada: boolean;
+  cotizacionPagadaEn?: string;
   estado: EstadoMejora;
   // Quien reporto el caso; solo esa persona (o administracion/supervisor)
   // puede marcarlo como resuelto. Ver src/lib/permissions.ts.

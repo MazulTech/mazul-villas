@@ -79,6 +79,8 @@ function mejora(
     afectaAmenidad,
     urgencia: calcularUrgencia(afectaSeguridadOperacion, afectaAmenidad),
     resolucion,
+    cotizacionAprobada: false,
+    cotizacionPagada: false,
     estado: "pendiente",
     creadoEn: new Date().toISOString(),
     ...extra,

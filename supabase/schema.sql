@@ -113,6 +113,23 @@ alter table mejoras add column if not exists resuelto_en timestamptz;
 alter table mejoras add column if not exists aprobado_en timestamptz;
 alter table mejoras add column if not exists creado_por uuid references auth.users(id);
 
+-- Cotizacion: cuando hay que comprar material o contratar a alguien,
+-- mantenimiento sube foto/proveedor/precio, administracion la aprueba, y
+-- el dueno (quien paga) o administracion la marcan como pagada. Solo
+-- entonces se puede marcar la tarea como resuelta (ver trigger mas abajo).
+alter table mejoras add column if not exists foto_cotizacion_url text;
+alter table mejoras add column if not exists proveedor_o_link text;
+alter table mejoras add column if not exists cotizacion_aprobada boolean;
+update mejoras set cotizacion_aprobada = coalesce(cotizacion_aprobada, false);
+alter table mejoras alter column cotizacion_aprobada set not null;
+alter table mejoras alter column cotizacion_aprobada set default false;
+alter table mejoras add column if not exists cotizacion_aprobada_en timestamptz;
+alter table mejoras add column if not exists cotizacion_pagada boolean;
+update mejoras set cotizacion_pagada = coalesce(cotizacion_pagada, false);
+alter table mejoras alter column cotizacion_pagada set not null;
+alter table mejoras alter column cotizacion_pagada set default false;
+alter table mejoras add column if not exists cotizacion_pagada_en timestamptz;
+
 -- Por si la tabla ya existia de una version anterior sin este default
 -- (create table if not exists no lo agrega a tablas ya creadas).
 alter table mejoras alter column creado_por set default auth.uid();
@@ -298,13 +315,17 @@ create policy "mejoras_update" on mejoras for update
   using (
     creado_por = auth.uid()
     or public.es_admin()
+    or public.mi_rol() = 'mantenimiento'
     or (public.mi_rol() = 'dueno' and public.villa_visible(villa_id))
   )
   with check (
     creado_por = auth.uid()
     or public.es_admin()
+    or public.mi_rol() = 'mantenimiento'
     or (public.mi_rol() = 'dueno' and public.villa_visible(villa_id))
   );
+drop policy if exists "mejoras_delete" on mejoras;
+create policy "mejoras_delete" on mejoras for delete using (public.es_admin());
 
 -- incidencias: mismas reglas de visibilidad que mejoras; lo crea/edita
 -- cualquiera que no sea dueno.
@@ -345,11 +366,32 @@ begin
     if new.foto_despues_url is null then
       raise exception 'Se requiere la foto de despues para marcar el caso como resuelto.';
     end if;
+    if old.resolucion in ('materiales', 'contratar') and not (old.cotizacion_aprobada and old.cotizacion_pagada) then
+      raise exception 'Falta aprobar y pagar la cotizacion antes de marcar esta tarea como resuelta.';
+    end if;
   end if;
 
   if new.estado in ('aprobada', 'rechazada') and old.estado is distinct from new.estado then
     if not (public.mi_rol() = 'dueno' and old.villa_id = any(public.mis_villas())) then
       raise exception 'Solo el dueno de la villa puede aprobar o rechazar esta tarea.';
+    end if;
+  end if;
+
+  -- Cotizacion: solo administracion la aprueba.
+  if new.cotizacion_aprobada and not old.cotizacion_aprobada then
+    if not public.es_admin() then
+      raise exception 'Solo administracion puede aprobar la cotizacion.';
+    end if;
+  end if;
+
+  -- Cotizacion: solo el dueno de la villa (quien paga) o administracion
+  -- marcan que ya se pago, y solo si ya estaba aprobada.
+  if new.cotizacion_pagada and not old.cotizacion_pagada then
+    if not (public.es_admin() or (public.mi_rol() = 'dueno' and old.villa_id = any(public.mis_villas()))) then
+      raise exception 'Solo el dueno de la villa o administracion pueden marcar la cotizacion como pagada.';
+    end if;
+    if not old.cotizacion_aprobada then
+      raise exception 'La cotizacion debe estar aprobada antes de marcarla como pagada.';
     end if;
   end if;
 

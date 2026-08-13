@@ -220,6 +220,12 @@ export async function listarMejoras(villaId?: string, profile?: Profile | null):
     materialNecesario: d.material_necesario ?? undefined,
     especialistaNecesario: d.especialista_necesario ?? undefined,
     costoEstimado: d.costo_estimado ?? undefined,
+    fotoCotizacionUrl: d.foto_cotizacion_url ?? undefined,
+    proveedorOLink: d.proveedor_o_link ?? undefined,
+    cotizacionAprobada: d.cotizacion_aprobada ?? false,
+    cotizacionAprobadaEn: d.cotizacion_aprobada_en ?? undefined,
+    cotizacionPagada: d.cotizacion_pagada ?? false,
+    cotizacionPagadaEn: d.cotizacion_pagada_en ?? undefined,
     estado: d.estado,
     creadoPor: d.creado_por ?? undefined,
     creadoEn: d.creado_en,
@@ -249,6 +255,12 @@ export async function obtenerMejora(id: string): Promise<Mejora | null> {
     materialNecesario: data.material_necesario ?? undefined,
     especialistaNecesario: data.especialista_necesario ?? undefined,
     costoEstimado: data.costo_estimado ?? undefined,
+    fotoCotizacionUrl: data.foto_cotizacion_url ?? undefined,
+    proveedorOLink: data.proveedor_o_link ?? undefined,
+    cotizacionAprobada: data.cotizacion_aprobada ?? false,
+    cotizacionAprobadaEn: data.cotizacion_aprobada_en ?? undefined,
+    cotizacionPagada: data.cotizacion_pagada ?? false,
+    cotizacionPagadaEn: data.cotizacion_pagada_en ?? undefined,
     estado: data.estado,
     creadoPor: data.creado_por ?? undefined,
     creadoEn: data.creado_en,
@@ -296,6 +308,75 @@ export async function crearMejora(input: NuevaMejoraInput): Promise<void> {
   if (error) throw error;
 }
 
+// Permite completar despues los datos de material/especialista/costo
+// cuando al reportar el caso todavia no se sabe que se necesita comprar
+// o contratar (no hace falta volver a crear la tarea).
+export interface DetallesMejoraInput {
+  resolucion: Resolucion;
+  materialNecesario?: string;
+  especialistaNecesario?: string;
+  costoEstimado?: number;
+  fotoCotizacionUrl?: string;
+  proveedorOLink?: string;
+}
+
+// Cualquier edicion a los datos de compra reinicia la aprobacion/pago de
+// la cotizacion (si cambio el precio o el proveedor, hay que revisarla de
+// nuevo antes de que el dueno pague). Si la resolucion es "equipo" no
+// aplica cotizacion, asi que se deja todo limpio.
+export async function actualizarDetallesMejora(id: string, input: DetallesMejoraInput): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Detalles de mejora actualizados (demo, no persistida):", { id, ...input });
+    return;
+  }
+  const requiereCompra = input.resolucion !== "equipo";
+  const { error } = await supabase
+    .from("mejoras")
+    .update({
+      resolucion: input.resolucion,
+      material_necesario: input.materialNecesario || null,
+      especialista_necesario: input.especialistaNecesario || null,
+      costo_estimado: input.costoEstimado || null,
+      foto_cotizacion_url: requiereCompra ? input.fotoCotizacionUrl || null : null,
+      proveedor_o_link: requiereCompra ? input.proveedorOLink || null : null,
+      cotizacion_aprobada: false,
+      cotizacion_pagada: false,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Solo administracion/supervisor: confirma que la cotizacion (material,
+// proveedor, precio) es correcta. A partir de aqui el dueno ya puede
+// verla y pagarla.
+export async function aprobarCotizacion(id: string): Promise<void> {
+  const ahora = new Date().toISOString();
+  if (!supabaseConfigured || !supabase) {
+    console.info("Cotizacion aprobada (demo, no persistida):", { id });
+    return;
+  }
+  const { error } = await supabase
+    .from("mejoras")
+    .update({ cotizacion_aprobada: true, cotizacion_aprobada_en: ahora })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// El dueno (quien paga) o administracion confirman que ya se pago/compro
+// el material. Recien entonces el equipo puede marcar la tarea resuelta.
+export async function marcarCotizacionPagada(id: string): Promise<void> {
+  const ahora = new Date().toISOString();
+  if (!supabaseConfigured || !supabase) {
+    console.info("Cotizacion marcada como pagada (demo, no persistida):", { id });
+    return;
+  }
+  const { error } = await supabase
+    .from("mejoras")
+    .update({ cotizacion_pagada: true, cotizacion_pagada_en: ahora })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // El equipo marca la tarea como resuelta subiendo la foto "despues"; queda
 // esperando que el dueno la apruebe (o la rechace y pida mas trabajo).
 export async function marcarMejoraResuelta(id: string, fotoDespuesUrl: string): Promise<void> {
@@ -335,6 +416,17 @@ export async function rechazarMejora(id: string): Promise<void> {
     .from("mejoras")
     .update({ estado: "rechazada" as EstadoMejora })
     .eq("id", id);
+  if (error) throw error;
+}
+
+// Solo administracion/supervisor pueden borrar (ver permissions.ts); la
+// base de datos tambien lo exige via RLS, esto es nada mas la llamada.
+export async function eliminarMejora(id: string): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Mejora borrada (demo, no persistida):", { id });
+    return;
+  }
+  const { error } = await supabase.from("mejoras").delete().eq("id", id);
   if (error) throw error;
 }
 

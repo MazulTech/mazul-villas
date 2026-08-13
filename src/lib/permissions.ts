@@ -73,3 +73,43 @@ export function puedeRepartirInsumos(profile: Profile | null): boolean {
 export function puedeGestionarInventario(profile: Profile | null): boolean {
   return esAdmin(profile) || profile?.rol === "mantenimiento";
 }
+
+// Borrar una tarea de mejora es exclusivo de administracion/supervisor
+// (por ejemplo, si se creo por error o esta duplicada).
+export function puedeBorrarMejora(profile: Profile | null): boolean {
+  return esAdmin(profile);
+}
+
+// Cotizacion (material/proveedor/foto/precio) para tareas que requieren
+// comprar algo o contratar a alguien: la edita quien reporto el caso,
+// administracion/supervisor, o mantenimiento en general (por ejemplo el
+// jefe de mantenimiento, aunque no haya sido quien reporto el caso).
+export function puedeEditarCotizacion(profile: Profile | null): boolean {
+  return esAdmin(profile) || profile?.rol === "mantenimiento";
+}
+
+// Solo administracion/supervisor aprueba que la cotizacion es correcta
+// antes de que el dueno la vea y de que se pueda pagar.
+export function puedeAprobarCotizacion(profile: Profile | null): boolean {
+  return esAdmin(profile);
+}
+
+// El dueno de la villa (el que paga) o administracion pueden marcar la
+// cotizacion como pagada/comprada, una vez ya aprobada.
+export function puedeMarcarCotizacionPagada(profile: Profile | null, villaId: string): boolean {
+  return esAdmin(profile) || (esDueno(profile) && puedeVerVilla(profile, villaId));
+}
+
+// El dueno solo ve material/proveedor/foto/precio de la cotizacion una vez
+// que administracion la aprobo (para no exponer gastos sin revisar). Los
+// demas roles siempre la ven. No aplica si la resolucion es "equipo" (no
+// hay nada que comprar).
+export function puedeVerDetallesCotizacion(
+  profile: Profile | null,
+  resolucionEsCompra: boolean,
+  cotizacionAprobada: boolean
+): boolean {
+  if (!resolucionEsCompra) return true;
+  if (!esDueno(profile)) return true;
+  return cotizacionAprobada;
+}
