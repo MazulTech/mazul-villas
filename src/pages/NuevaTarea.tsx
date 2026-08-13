@@ -227,13 +227,12 @@ export default function NuevaTarea() {
               )}
             </>
           ) : (
-            "Toca para tomar o adjuntar la foto de evidencia"
+            "Toca para tomar una foto nueva o elegir una de tu galería"
           )}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="input-foto-oculto"
             onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
           />

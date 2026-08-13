@@ -129,13 +129,12 @@ export default function NuevoItemInventario() {
             )}
           </>
         ) : (
-          "Toca para tomar o adjuntar una foto del item"
+          "Toca para tomar una foto nueva o elegir una de tu galería"
         )}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="input-foto-oculto"
           onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
         />
