@@ -14,10 +14,11 @@ import {
 } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
-import type { Mejora, Resolucion } from "../types";
+import type { Mejora, Resolucion, TipoMantenimiento } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA } from "../lib/urgencia";
 import { CLASE_PILL_ESTADO_MEJORA, LABEL_ESTADO_MEJORA } from "../lib/estadoMejora";
 import { LABEL_RESOLUCION } from "../lib/resolucion";
+import { LABEL_QUIEN_PAGA, LABEL_TIPO_MANTENIMIENTO } from "../lib/tipoMantenimiento";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -25,6 +26,7 @@ import {
   puedeAprobarORechazar,
   puedeBorrarMejora,
   puedeEditarCotizacion,
+  puedeElegirTipoMantenimiento,
   puedeMarcarCotizacionPagada,
   puedeMarcarResuelta,
   puedeVerDetallesCotizacion,
@@ -51,6 +53,7 @@ export default function MejoraDetalle() {
 
   const [editandoDetalles, setEditandoDetalles] = useState(false);
   const [resolucionEdit, setResolucionEdit] = useState<Resolucion>("equipo");
+  const [tipoMantenimientoEdit, setTipoMantenimientoEdit] = useState<TipoMantenimiento>("correctivo");
   const [materialEdit, setMaterialEdit] = useState("");
   const [especialistaEdit, setEspecialistaEdit] = useState("");
   const [costoEdit, setCostoEdit] = useState("");
@@ -156,6 +159,7 @@ export default function MejoraDetalle() {
   const empezarEdicion = () => {
     if (!mejora) return;
     setResolucionEdit(mejora.resolucion);
+    setTipoMantenimientoEdit(mejora.tipoMantenimiento);
     setMaterialEdit(mejora.materialNecesario ?? "");
     setEspecialistaEdit(mejora.especialistaNecesario ?? "");
     setCostoEdit(mejora.costoEstimado !== undefined ? String(mejora.costoEstimado) : "");
@@ -198,6 +202,7 @@ export default function MejoraDetalle() {
         costoEstimado: costoEdit ? Number(costoEdit) : undefined,
         fotoCotizacionUrl: fotoCotizacionEdit || undefined,
         proveedorOLink: proveedorEdit || undefined,
+        tipoMantenimiento: puedeElegirTipoMantenimiento(profile) ? tipoMantenimientoEdit : undefined,
       });
       setEditandoDetalles(false);
       cargar();
@@ -292,7 +297,7 @@ export default function MejoraDetalle() {
   const puedeAprobarLaCotizacion =
     puedeAprobarCotizacion(profile) && requiereCompra && !mejora.cotizacionAprobada && !!mejora.materialNecesario;
   const puedeMarcarPago =
-    puedeMarcarCotizacionPagada(profile, mejora.villaId) &&
+    puedeMarcarCotizacionPagada(profile, mejora.villaId, mejora.tipoMantenimiento) &&
     requiereCompra &&
     mejora.cotizacionAprobada &&
     !mejora.cotizacionPagada;
@@ -305,9 +310,12 @@ export default function MejoraDetalle() {
         {mejora.zona} · {mejora.descripcion}
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
         <span className={CLASE_PILL_URGENCIA[mejora.urgencia]}>{LABEL_URGENCIA[mejora.urgencia]}</span>
         <span className={CLASE_PILL_ESTADO_MEJORA[mejora.estado]}>{LABEL_ESTADO_MEJORA[mejora.estado]}</span>
+        <span className="pill" style={{ background: "var(--sand)", color: "var(--espresso)" }}>
+          {LABEL_TIPO_MANTENIMIENTO[mejora.tipoMantenimiento]}
+        </span>
       </div>
 
       {error && (
@@ -397,6 +405,9 @@ export default function MejoraDetalle() {
                     Costo estimado: ${mejora.costoEstimado} MXN
                   </p>
                 )}
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 2px" }}>
+                  {LABEL_QUIEN_PAGA[mejora.tipoMantenimiento]}
+                </p>
                 {mejora.fotoCotizacionUrl && (
                   <img
                     src={mejora.fotoCotizacionUrl}
@@ -449,6 +460,29 @@ export default function MejoraDetalle() {
           </>
         ) : (
           <div>
+            {puedeElegirTipoMantenimiento(profile) && (
+              <div style={{ marginBottom: 10 }}>
+                <label className="field-label">¿Preventivo o correctivo?</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`choice-row${tipoMantenimientoEdit === "preventivo" ? " selected" : ""}`}
+                    onClick={() => setTipoMantenimientoEdit("preventivo")}
+                    style={{ flex: 1, justifyContent: "center" }}
+                  >
+                    Preventivo
+                  </button>
+                  <button
+                    type="button"
+                    className={`choice-row${tipoMantenimientoEdit === "correctivo" ? " selected" : ""}`}
+                    onClick={() => setTipoMantenimientoEdit("correctivo")}
+                    style={{ flex: 1, justifyContent: "center" }}
+                  >
+                    Correctivo
+                  </button>
+                </div>
+              </div>
+            )}
             <label className="field-label">¿Cómo se resuelve?</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
               <button
@@ -583,7 +617,9 @@ export default function MejoraDetalle() {
             <p style={{ fontSize: 11, margin: 0 }}>
               {!mejora.cotizacionAprobada
                 ? "Falta que administración apruebe la cotización antes de poder trabajar en esto."
-                : "La cotización ya está aprobada. Falta que se pague/compre el material antes de poder trabajar en esto."}
+                : mejora.tipoMantenimiento === "preventivo"
+                  ? "La cotización ya está aprobada. Falta que administración confirme el pago (fondos de Mazul) antes de poder trabajar en esto."
+                  : "La cotización ya está aprobada. Falta que el dueño pague/compre el material antes de poder trabajar en esto."}
             </p>
           </div>
         )}

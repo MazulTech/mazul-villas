@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
-import type { Resolucion } from "../types";
+import type { Resolucion, TipoMantenimiento } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA, calcularUrgencia } from "../lib/urgencia";
 import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
 import { useAuth } from "../contexts/AuthContext";
+import { puedeElegirTipoMantenimiento } from "../lib/permissions";
 
 // Si el celular bloquea la pantalla, el navegador puede recargar la
 // pestaña por completo al volver (para liberar memoria), lo que borra
@@ -22,6 +23,7 @@ interface Borrador {
   descripcion: string;
   afectaSeguridadOperacion: boolean | null;
   afectaAmenidad: boolean | null;
+  tipoMantenimiento: TipoMantenimiento | null;
   resolucion: Resolucion;
   materialNecesario: string;
   especialista: string;
@@ -57,6 +59,9 @@ export default function NuevaTarea() {
     borradorInicial?.afectaSeguridadOperacion ?? null
   );
   const [afectaAmenidad, setAfectaAmenidad] = useState<boolean | null>(borradorInicial?.afectaAmenidad ?? null);
+  const [tipoMantenimiento, setTipoMantenimiento] = useState<TipoMantenimiento | null>(
+    borradorInicial?.tipoMantenimiento ?? null
+  );
   const [resolucion, setResolucion] = useState<Resolucion>(borradorInicial?.resolucion ?? "equipo");
   const [materialNecesario, setMaterialNecesario] = useState(borradorInicial?.materialNecesario ?? "");
   const [especialista, setEspecialista] = useState(borradorInicial?.especialista ?? "");
@@ -64,6 +69,7 @@ export default function NuevaTarea() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [huboBorrador] = useState(borradorInicial !== null);
+  const puedeElegirTipo = puedeElegirTipoMantenimiento(profile);
 
   useEffect(() => {
     listarVillas(profile)
@@ -85,6 +91,7 @@ export default function NuevaTarea() {
       descripcion,
       afectaSeguridadOperacion,
       afectaAmenidad,
+      tipoMantenimiento,
       resolucion,
       materialNecesario,
       especialista,
@@ -103,6 +110,7 @@ export default function NuevaTarea() {
     descripcion,
     afectaSeguridadOperacion,
     afectaAmenidad,
+    tipoMantenimiento,
     resolucion,
     materialNecesario,
     especialista,
@@ -155,11 +163,16 @@ export default function NuevaTarea() {
   if (descripcion.trim().length === 0) faltantes.push("la descripción");
   if (afectaSeguridadOperacion === null) faltantes.push("responder si afecta seguridad/operación");
   else if (afectaSeguridadOperacion === false && afectaAmenidad === null) faltantes.push("responder si afecta una amenidad");
+  if (puedeElegirTipo && tipoMantenimiento === null) faltantes.push("elegir si es preventivo o correctivo");
 
   const puedeGuardar = faltantes.length === 0;
 
   const guardar = async () => {
     if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntesUrl) return;
+    // Quien no es admin no elige preventivo/correctivo (lo decide
+    // administración después); se guarda como correctivo por default.
+    const tipoAGuardar = puedeElegirTipo ? tipoMantenimiento : "correctivo";
+    if (tipoAGuardar === null) return;
     setGuardando(true);
     setError(null);
     try {
@@ -170,6 +183,7 @@ export default function NuevaTarea() {
         fotoAntesUrl,
         afectaSeguridadOperacion,
         afectaAmenidad,
+        tipoMantenimiento: tipoAGuardar,
         resolucion,
         materialNecesario: materialNecesario || undefined,
         especialistaNecesario: especialista || undefined,
@@ -273,6 +287,37 @@ export default function NuevaTarea() {
         <label className="field-label">Descripción</label>
         <textarea rows={2} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Fuga en la llave del fregadero" />
       </div>
+
+      {puedeElegirTipo && (
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">¿Es mantenimiento preventivo (programado) o correctivo (se reporta una falla)?</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className={`choice-row${tipoMantenimiento === "preventivo" ? " selected" : ""}`}
+            onClick={() => setTipoMantenimiento("preventivo")}
+            style={{ flex: 1, justifyContent: "center" }}
+          >
+            Preventivo
+          </button>
+          <button
+            type="button"
+            className={`choice-row${tipoMantenimiento === "correctivo" ? " selected" : ""}`}
+            onClick={() => setTipoMantenimiento("correctivo")}
+            style={{ flex: 1, justifyContent: "center" }}
+          >
+            Correctivo
+          </button>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>
+          {tipoMantenimiento === "preventivo"
+            ? "Si hay que comprar algo, se paga con fondos de Mazul."
+            : tipoMantenimiento === "correctivo"
+              ? "Si hay que comprar algo, lo paga el dueño de la villa."
+              : "Preventivo = programado (se paga con fondos de Mazul). Correctivo = falla reportada (lo paga el dueño)."}
+        </p>
+      </div>
+      )}
 
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">

@@ -34,10 +34,15 @@ create table if not exists insumos_catalogo (
   id uuid primary key default gen_random_uuid(),
   nombre text not null unique,
   unidad text,
+  categoria text,
   stock_actual int not null default 0,
   stock_minimo int not null default 0,
   actualizado_en timestamptz not null default now()
 );
+
+-- Por si la tabla ya existia de una version anterior sin categorias
+-- (create table if not exists no la agrega a tablas ya creadas).
+alter table insumos_catalogo add column if not exists categoria text;
 
 -- Bitacora de cada reparto del almacen general a una villa.
 create table if not exists repartos_insumos (
@@ -65,6 +70,7 @@ create table if not exists mejoras (
   afecta_seguridad_operacion boolean not null,
   afecta_amenidad boolean not null,
   urgencia text not null check (urgencia in ('critico', 'operacional', 'estetica')),
+  tipo_mantenimiento text not null default 'correctivo' check (tipo_mantenimiento in ('preventivo', 'correctivo')),
   resolucion text not null check (resolucion in ('equipo', 'materiales', 'contratar')),
   material_necesario text,
   especialista_necesario text,
@@ -112,6 +118,16 @@ alter table mejoras add column if not exists costo_estimado numeric;
 alter table mejoras add column if not exists resuelto_en timestamptz;
 alter table mejoras add column if not exists aprobado_en timestamptz;
 alter table mejoras add column if not exists creado_por uuid references auth.users(id);
+
+-- Preventivo (fondos de Mazul) vs correctivo (lo paga el dueno). 'correctivo'
+-- como default porque es el caso mas comun de lo ya reportado hasta ahora.
+alter table mejoras add column if not exists tipo_mantenimiento text;
+update mejoras set tipo_mantenimiento = coalesce(tipo_mantenimiento, 'correctivo');
+alter table mejoras alter column tipo_mantenimiento set not null;
+alter table mejoras alter column tipo_mantenimiento set default 'correctivo';
+alter table mejoras drop constraint if exists mejoras_tipo_mantenimiento_check;
+alter table mejoras add constraint mejoras_tipo_mantenimiento_check
+  check (tipo_mantenimiento in ('preventivo', 'correctivo'));
 
 -- Cotizacion: cuando hay que comprar material o contratar a alguien,
 -- mantenimiento sube foto/proveedor/precio, administracion la aprueba, y
@@ -377,6 +393,14 @@ begin
     end if;
   end if;
 
+  -- Preventivo vs correctivo (quien paga) solo lo decide administracion;
+  -- mantenimiento y el resto de roles solo reportan, no clasifican esto.
+  if new.tipo_mantenimiento is distinct from old.tipo_mantenimiento then
+    if not public.es_admin() then
+      raise exception 'Solo administracion puede cambiar si es preventivo o correctivo.';
+    end if;
+  end if;
+
   -- Cotizacion: solo administracion la aprueba.
   if new.cotizacion_aprobada and not old.cotizacion_aprobada then
     if not public.es_admin() then
@@ -384,11 +408,15 @@ begin
     end if;
   end if;
 
-  -- Cotizacion: solo el dueno de la villa (quien paga) o administracion
-  -- marcan que ya se pago, y solo si ya estaba aprobada.
+  -- Cotizacion: si es correctivo, el dueno de la villa (quien paga) o
+  -- administracion marcan que ya se pago. Si es preventivo, se paga con
+  -- fondos de Mazul, asi que solo administracion lo confirma.
   if new.cotizacion_pagada and not old.cotizacion_pagada then
-    if not (public.es_admin() or (public.mi_rol() = 'dueno' and old.villa_id = any(public.mis_villas()))) then
-      raise exception 'Solo el dueno de la villa o administracion pueden marcar la cotizacion como pagada.';
+    if not (
+      public.es_admin()
+      or (old.tipo_mantenimiento = 'correctivo' and public.mi_rol() = 'dueno' and old.villa_id = any(public.mis_villas()))
+    ) then
+      raise exception 'Solo el dueno de la villa (si es correctivo) o administracion pueden marcar la cotizacion como pagada.';
     end if;
     if not old.cotizacion_aprobada then
       raise exception 'La cotizacion debe estar aprobada antes de marcarla como pagada.';

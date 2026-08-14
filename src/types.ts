@@ -23,6 +23,12 @@ export type Resolucion = "equipo" | "materiales" | "contratar";
 
 export type EstadoMejora = "pendiente" | "en_proceso" | "esperando_aprobacion" | "aprobada" | "rechazada";
 
+// Preventivo: mantenimiento programado/de rutina, se paga con fondos de
+// Mazul. Correctivo: se reporta un problema/falla, lo paga el dueno de la
+// villa. Determina quien puede marcar la cotizacion como pagada (ver
+// permissions.ts) y se elige al crear la tarea.
+export type TipoMantenimiento = "preventivo" | "correctivo";
+
 export interface Mejora {
   id: string;
   villaId: string;
@@ -37,6 +43,7 @@ export interface Mejora {
   afectaSeguridadOperacion: boolean; // bloquea la villa o empeora si no se atiende ya
   afectaAmenidad: boolean; // afecta un servicio/amenidad que el huesped espera
   urgencia: Urgencia; // calculado a partir de las dos preguntas anteriores
+  tipoMantenimiento: TipoMantenimiento;
   resolucion: Resolucion;
   materialNecesario?: string;
   especialistaNecesario?: string;
@@ -78,6 +85,9 @@ export interface InsumoCatalogo {
   id: string;
   nombre: string;
   unidad?: string;
+  // Ej: "Herramientas", "Baño", "Cocina"... ver src/data/categoriasInsumos.ts.
+  // Opcional para no romper insumos ya cargados antes de tener categorias.
+  categoria?: string;
   stockActual: number;
   stockMinimo: number;
 }

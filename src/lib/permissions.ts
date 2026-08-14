@@ -1,4 +1,4 @@
-import type { Profile, Rol } from "../types";
+import type { Profile, Rol, TipoMantenimiento } from "../types";
 
 export const LABEL_ROL: Record<Rol, string> = {
   supervisor: "Supervisor",
@@ -88,16 +88,31 @@ export function puedeEditarCotizacion(profile: Profile | null): boolean {
   return esAdmin(profile) || profile?.rol === "mantenimiento";
 }
 
+// Preventivo vs correctivo (quien paga) lo decide solo administracion:
+// mantenimiento y el resto de roles solo reportan incidentes/avances
+// fisicos, no clasifican quien cubre el gasto.
+export function puedeElegirTipoMantenimiento(profile: Profile | null): boolean {
+  return esAdmin(profile);
+}
+
 // Solo administracion/supervisor aprueba que la cotizacion es correcta
 // antes de que el dueno la vea y de que se pueda pagar.
 export function puedeAprobarCotizacion(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 
-// El dueno de la villa (el que paga) o administracion pueden marcar la
-// cotizacion como pagada/comprada, una vez ya aprobada.
-export function puedeMarcarCotizacionPagada(profile: Profile | null, villaId: string): boolean {
-  return esAdmin(profile) || (esDueno(profile) && puedeVerVilla(profile, villaId));
+// Quien puede marcar la cotizacion como pagada/comprada (una vez ya
+// aprobada) depende de quien paga: si es correctivo, el dueno de la villa
+// (quien pone el dinero) o administracion; si es preventivo, se paga con
+// fondos de Mazul, asi que solo administracion lo confirma.
+export function puedeMarcarCotizacionPagada(
+  profile: Profile | null,
+  villaId: string,
+  tipoMantenimiento: TipoMantenimiento
+): boolean {
+  if (esAdmin(profile)) return true;
+  if (tipoMantenimiento === "correctivo") return esDueno(profile) && puedeVerVilla(profile, villaId);
+  return false;
 }
 
 // El dueno solo ve material/proveedor/foto/precio de la cotizacion una vez

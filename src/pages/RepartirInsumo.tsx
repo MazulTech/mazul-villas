@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listarAlmacen, listarVillas, repartirInsumo, type VillaBasica } from "../lib/data";
 import type { InsumoCatalogo } from "../types";
@@ -35,6 +35,16 @@ export default function RepartirInsumo() {
       .catch((e: Error) => setError(e.message));
   }, [profile, autorizado]);
 
+  const gruposInsumos = useMemo(() => {
+    const mapa = new Map<string, InsumoCatalogo[]>();
+    for (const i of items) {
+      const cat = i.categoria || "Sin categoría";
+      if (!mapa.has(cat)) mapa.set(cat, []);
+      mapa.get(cat)!.push(i);
+    }
+    return Array.from(mapa.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [items]);
+
   const insumoSeleccionado = items.find((i) => i.id === insumoId);
   const cantidadNum = Number(cantidad);
   const puedeGuardar =
@@ -70,10 +80,14 @@ export default function RepartirInsumo() {
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Insumo</label>
         <select value={insumoId} onChange={(e) => setInsumoId(e.target.value)}>
-          {items.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.nombre} (disponible: {i.stockActual} {i.unidad || ""})
-            </option>
+          {gruposInsumos.map(([categoria, itemsCategoria]) => (
+            <optgroup key={categoria} label={categoria}>
+              {itemsCategoria.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.nombre} (disponible: {i.stockActual} {i.unidad || ""})
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

@@ -54,10 +54,10 @@ export const insumos: InsumoStock[] = [
 // Almacen general: se compra aqui (administracion) y de aqui se reparte a
 // cada villa (limpieza/mantenimiento/administracion). Ver repartirInsumo.
 export const almacenGeneral: InsumoCatalogo[] = [
-  { id: "cat-1", nombre: "Toallas de baño", unidad: "piezas", stockActual: 46, stockMinimo: 20 },
-  { id: "cat-2", nombre: "Shampoo amenity", unidad: "piezas", stockActual: 80, stockMinimo: 40 },
-  { id: "cat-3", nombre: "Café / cápsulas", unidad: "cajas", stockActual: 6, stockMinimo: 15 },
-  { id: "cat-4", nombre: "Papel higiénico", unidad: "rollos", stockActual: 30, stockMinimo: 40 },
+  { id: "cat-1", nombre: "Toallas de baño", unidad: "piezas", categoria: "Blancos y toallas", stockActual: 46, stockMinimo: 20 },
+  { id: "cat-2", nombre: "Shampoo amenity", unidad: "piezas", categoria: "Baño", stockActual: 80, stockMinimo: 40 },
+  { id: "cat-3", nombre: "Café / cápsulas", unidad: "cajas", categoria: "Cocina", stockActual: 6, stockMinimo: 15 },
+  { id: "cat-4", nombre: "Papel higiénico", unidad: "rollos", categoria: "Baño", stockActual: 30, stockMinimo: 40 },
 ];
 
 function mejora(
@@ -78,6 +78,7 @@ function mejora(
     afectaSeguridadOperacion,
     afectaAmenidad,
     urgencia: calcularUrgencia(afectaSeguridadOperacion, afectaAmenidad),
+    tipoMantenimiento: "correctivo",
     resolucion,
     cotizacionAprobada: false,
     cotizacionPagada: false,

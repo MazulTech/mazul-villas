@@ -7,7 +7,7 @@ import {
   mejoras as mockMejoras,
   inventario as mockInventario,
 } from "../data/mockData";
-import type { ChecklistTarea, Condicion, EstadoMejora, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Profile, Resolucion, Villa } from "../types";
+import type { ChecklistTarea, Condicion, EstadoMejora, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Profile, Resolucion, TipoMantenimiento, Villa } from "../types";
 import { calcularUrgencia } from "./urgencia";
 import { villasVisibles } from "./permissions";
 
@@ -131,13 +131,14 @@ export async function listarAlmacen(): Promise<InsumoCatalogo[]> {
   }
   const { data, error } = await supabase
     .from("insumos_catalogo")
-    .select("id, nombre, unidad, stock_actual, stock_minimo")
+    .select("id, nombre, unidad, categoria, stock_actual, stock_minimo")
     .order("nombre");
   if (error) throw error;
   return (data ?? []).map((d) => ({
     id: d.id,
     nombre: d.nombre,
     unidad: d.unidad ?? undefined,
+    categoria: d.categoria ?? undefined,
     stockActual: d.stock_actual,
     stockMinimo: d.stock_minimo,
   }));
@@ -146,6 +147,7 @@ export async function listarAlmacen(): Promise<InsumoCatalogo[]> {
 export interface NuevoInsumoCatalogoInput {
   nombre: string;
   unidad?: string;
+  categoria?: string;
   stockActual: number;
   stockMinimo: number;
 }
@@ -158,6 +160,7 @@ export async function crearInsumoCatalogo(input: NuevoInsumoCatalogoInput): Prom
   const { error } = await supabase.from("insumos_catalogo").insert({
     nombre: input.nombre,
     unidad: input.unidad || null,
+    categoria: input.categoria || null,
     stock_actual: input.stockActual,
     stock_minimo: input.stockMinimo,
   });
@@ -216,6 +219,7 @@ export async function listarMejoras(villaId?: string, profile?: Profile | null):
     afectaSeguridadOperacion: d.afecta_seguridad_operacion,
     afectaAmenidad: d.afecta_amenidad,
     urgencia: d.urgencia,
+    tipoMantenimiento: d.tipo_mantenimiento ?? "correctivo",
     resolucion: d.resolucion,
     materialNecesario: d.material_necesario ?? undefined,
     especialistaNecesario: d.especialista_necesario ?? undefined,
@@ -251,6 +255,7 @@ export async function obtenerMejora(id: string): Promise<Mejora | null> {
     afectaSeguridadOperacion: data.afecta_seguridad_operacion,
     afectaAmenidad: data.afecta_amenidad,
     urgencia: data.urgencia,
+    tipoMantenimiento: data.tipo_mantenimiento ?? "correctivo",
     resolucion: data.resolucion,
     materialNecesario: data.material_necesario ?? undefined,
     especialistaNecesario: data.especialista_necesario ?? undefined,
@@ -277,6 +282,7 @@ export interface NuevaMejoraInput {
   fotoAntesUrl: string;
   afectaSeguridadOperacion: boolean;
   afectaAmenidad: boolean;
+  tipoMantenimiento: TipoMantenimiento;
   resolucion: Resolucion;
   materialNecesario?: string;
   especialistaNecesario?: string;
@@ -300,6 +306,7 @@ export async function crearMejora(input: NuevaMejoraInput): Promise<void> {
     afecta_seguridad_operacion: input.afectaSeguridadOperacion,
     afecta_amenidad: input.afectaAmenidad,
     urgencia,
+    tipo_mantenimiento: input.tipoMantenimiento,
     resolucion: input.resolucion,
     material_necesario: input.materialNecesario || null,
     especialista_necesario: input.especialistaNecesario || null,
@@ -318,6 +325,9 @@ export interface DetallesMejoraInput {
   costoEstimado?: number;
   fotoCotizacionUrl?: string;
   proveedorOLink?: string;
+  // Solo administracion puede cambiar esto (ver permissions.ts); si no se
+  // manda, no se toca la clasificacion que ya tenia.
+  tipoMantenimiento?: TipoMantenimiento;
 }
 
 // Cualquier edicion a los datos de compra reinicia la aprobacion/pago de
@@ -330,19 +340,20 @@ export async function actualizarDetallesMejora(id: string, input: DetallesMejora
     return;
   }
   const requiereCompra = input.resolucion !== "equipo";
-  const { error } = await supabase
-    .from("mejoras")
-    .update({
-      resolucion: input.resolucion,
-      material_necesario: input.materialNecesario || null,
-      especialista_necesario: input.especialistaNecesario || null,
-      costo_estimado: input.costoEstimado || null,
-      foto_cotizacion_url: requiereCompra ? input.fotoCotizacionUrl || null : null,
-      proveedor_o_link: requiereCompra ? input.proveedorOLink || null : null,
-      cotizacion_aprobada: false,
-      cotizacion_pagada: false,
-    })
-    .eq("id", id);
+  const cambios: Record<string, unknown> = {
+    resolucion: input.resolucion,
+    material_necesario: input.materialNecesario || null,
+    especialista_necesario: input.especialistaNecesario || null,
+    costo_estimado: input.costoEstimado || null,
+    foto_cotizacion_url: requiereCompra ? input.fotoCotizacionUrl || null : null,
+    proveedor_o_link: requiereCompra ? input.proveedorOLink || null : null,
+    cotizacion_aprobada: false,
+    cotizacion_pagada: false,
+  };
+  if (input.tipoMantenimiento !== undefined) {
+    cambios.tipo_mantenimiento = input.tipoMantenimiento;
+  }
+  const { error } = await supabase.from("mejoras").update(cambios).eq("id", id);
   if (error) throw error;
 }
 

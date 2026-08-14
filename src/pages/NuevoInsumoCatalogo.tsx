@@ -4,6 +4,7 @@ import { crearInsumoCatalogo } from "../lib/data";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeGestionarInsumos } from "../lib/permissions";
 import { mensajeError } from "../lib/errores";
+import { CATEGORIAS_INSUMOS, OTRA_CATEGORIA } from "../data/categoriasInsumos";
 
 export default function NuevoInsumoCatalogo() {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function NuevoInsumoCatalogo() {
   const autorizado = puedeGestionarInsumos(profile);
   const [nombre, setNombre] = useState("");
   const [unidad, setUnidad] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>(CATEGORIAS_INSUMOS[0]);
+  const [categoriaOtra, setCategoriaOtra] = useState("");
+  const categoria = categoriaSeleccionada === OTRA_CATEGORIA ? categoriaOtra : categoriaSeleccionada;
   const [stockActual, setStockActual] = useState("0");
   const [stockMinimo, setStockMinimo] = useState("0");
   const [guardando, setGuardando] = useState(false);
@@ -25,6 +29,7 @@ export default function NuevoInsumoCatalogo() {
       await crearInsumoCatalogo({
         nombre,
         unidad: unidad || undefined,
+        categoria: categoria || undefined,
         stockActual: Number(stockActual) || 0,
         stockMinimo: Number(stockMinimo) || 0,
       });
@@ -58,6 +63,25 @@ export default function NuevoInsumoCatalogo() {
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Unidad (opcional)</label>
         <input value={unidad} onChange={(e) => setUnidad(e.target.value)} placeholder="piezas, rollos, cajas..." />
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">Categoría</label>
+        <select value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(e.target.value)}>
+          {CATEGORIAS_INSUMOS.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {categoriaSeleccionada === OTRA_CATEGORIA && (
+          <input
+            style={{ marginTop: 6 }}
+            value={categoriaOtra}
+            onChange={(e) => setCategoriaOtra(e.target.value)}
+            placeholder="Especifica la categoría"
+          />
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
