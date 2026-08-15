@@ -1,16 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { listarInventario, listarVillas, type VillaBasica } from "../lib/data";
 import type { InventarioItem } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeGestionarInventario } from "../lib/permissions";
+import { puedeCrearCaso, puedeGestionarInventario } from "../lib/permissions";
 import Cargando from "../components/Cargando";
+
+const LABEL_CONDICION_DESCRIPCION: Record<string, string> = {
+  regular: "en condición regular",
+  danado: "dañado",
+};
 
 export default function Inventario() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const gestionar = puedeGestionarInventario(profile);
+  const reportar = puedeCrearCaso(profile);
   const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [villaId, setVillaId] = useState("");
   const [items, setItems] = useState<InventarioItem[]>([]);
@@ -75,39 +82,61 @@ export default function Inventario() {
         <div key={zona} style={{ marginBottom: 14 }}>
           <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 6px" }}>{zona.toUpperCase()}</p>
           {itemsZona.map((it) => (
-            <div key={it.id} className="card" style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              {it.fotoUrl ? (
-                <img
-                  src={it.fotoUrl}
-                  alt={it.nombre}
-                  style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 8,
-                    background: "var(--sand)",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    color: "var(--text-secondary)",
-                    textAlign: "center",
-                  }}
-                >
-                  Sin foto
+            <div key={it.id} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {it.fotoUrl ? (
+                  <img
+                    src={it.fotoUrl}
+                    alt={it.nombre}
+                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 8,
+                      background: "var(--sand)",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 10,
+                      color: "var(--text-secondary)",
+                      textAlign: "center",
+                    }}
+                  >
+                    Sin foto
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{it.nombre}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    Cantidad: {it.cantidad} · {new Date(it.creadoEn).toLocaleDateString("es-MX")}
+                  </div>
                 </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{it.nombre}</div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                  Cantidad: {it.cantidad} · {new Date(it.creadoEn).toLocaleDateString("es-MX")}
-                </div>
+                <span className={CLASE_PILL_CONDICION[it.condicion]}>{LABEL_CONDICION[it.condicion]}</span>
               </div>
-              <span className={CLASE_PILL_CONDICION[it.condicion]}>{LABEL_CONDICION[it.condicion]}</span>
+              {reportar && it.condicion !== "bueno" && (
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                  onClick={() =>
+                    navigate("/mejoras/nueva", {
+                      state: {
+                        villaId: it.villaId,
+                        zona: it.zona,
+                        descripcion: `${it.nombre} ${LABEL_CONDICION_DESCRIPCION[it.condicion] ?? "con problema"} (reportado desde inventario).`,
+                        fotoUrl: it.fotoUrl,
+                        inventarioItemId: it.id,
+                      },
+                    })
+                  }
+                >
+                  Reportar como mejora
+                </button>
+              )}
             </div>
           ))}
         </div>

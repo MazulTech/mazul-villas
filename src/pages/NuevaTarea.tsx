@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
@@ -40,19 +40,45 @@ function leerBorrador(): Borrador | null {
   }
 }
 
+// Cuando se llega desde el botón "Reportar como mejora" de Inventario.tsx,
+// viene esta info en location.state para no tener que volver a escribir
+// villa/zona/descripción ni retomar la foto.
+interface PrefillDesdeInventario {
+  villaId?: string;
+  zona?: string;
+  descripcion?: string;
+  fotoUrl?: string;
+  inventarioItemId?: string;
+}
+
 export default function NuevaTarea() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const borradorInicial = useRef(leerBorrador()).current;
+  // Si venimos de Inventario, ese contexto manda sobre cualquier borrador
+  // viejo que hubiera quedado a medias.
+  const prefill = useRef((location.state as PrefillDesdeInventario | null) ?? null).current;
   const [villas, setVillas] = useState<VillaBasica[]>([]);
-  const [villaId, setVillaId] = useState(borradorInicial?.villaId ?? "");
-  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(borradorInicial?.zonaSeleccionada ?? ZONAS[0]);
-  const [zonaOtra, setZonaOtra] = useState(borradorInicial?.zonaOtra ?? "");
+  const [villaId, setVillaId] = useState(prefill?.villaId ?? borradorInicial?.villaId ?? "");
+  const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(() => {
+    if (prefill?.zona) return ZONAS.includes(prefill.zona as (typeof ZONAS)[number]) ? prefill.zona : OTRA_ZONA;
+    return borradorInicial?.zonaSeleccionada ?? ZONAS[0];
+  });
+  const [zonaOtra, setZonaOtra] = useState(() => {
+    if (prefill?.zona && !ZONAS.includes(prefill.zona as (typeof ZONAS)[number])) return prefill.zona;
+    return borradorInicial?.zonaOtra ?? "";
+  });
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
-  const [descripcion, setDescripcion] = useState(borradorInicial?.descripcion ?? "");
-  const [fotoAntesUrl, setFotoAntesUrl] = useState<string | null>(borradorInicial?.fotoAntesUrl ?? null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(borradorInicial?.fotoAntesUrl ?? null);
+  const [descripcion, setDescripcion] = useState(prefill?.descripcion ?? borradorInicial?.descripcion ?? "");
+  const [fotoAntesUrl, setFotoAntesUrl] = useState<string | null>(
+    prefill?.fotoUrl ?? borradorInicial?.fotoAntesUrl ?? null
+  );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    prefill?.fotoUrl ?? borradorInicial?.fotoAntesUrl ?? null
+  );
+  const [inventarioItemId] = useState<string | undefined>(prefill?.inventarioItemId);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(
@@ -68,7 +94,7 @@ export default function NuevaTarea() {
   const [costoEstimado, setCostoEstimado] = useState(borradorInicial?.costoEstimado ?? "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [huboBorrador] = useState(borradorInicial !== null);
+  const [huboBorrador] = useState(!prefill && borradorInicial !== null);
   const puedeElegirTipo = puedeElegirTipoMantenimiento(profile);
 
   useEffect(() => {
@@ -188,6 +214,7 @@ export default function NuevaTarea() {
         materialNecesario: materialNecesario || undefined,
         especialistaNecesario: especialista || undefined,
         costoEstimado: costoEstimado ? Number(costoEstimado) : undefined,
+        inventarioItemId,
       });
       borrarBorrador();
       navigate("/mejoras");
@@ -202,6 +229,14 @@ export default function NuevaTarea() {
     <div>
       <h1 className="page-title">Nueva tarea de mejora</h1>
       <p className="page-sub">Aplica para cualquier villa, no solo la del recorrido de hoy</p>
+
+      {inventarioItemId && (
+        <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0 }}>
+            Reportado desde un item del inventario. Revisa los datos y agrega lo que haga falta.
+          </p>
+        </div>
+      )}
 
       {huboBorrador && (
         <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>

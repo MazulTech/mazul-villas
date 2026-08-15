@@ -68,6 +68,9 @@ export interface Mejora {
   creadoEn: string;
   resueltoEn?: string;
   aprobadoEn?: string;
+  // Si esta tarea nacio de un item de inventario en mal estado (boton
+  // "Reportar como mejora" en Inventario.tsx), queda esta referencia.
+  inventarioItemId?: string;
 }
 
 export interface InsumoStock {

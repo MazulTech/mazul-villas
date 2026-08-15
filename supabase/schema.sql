@@ -119,6 +119,10 @@ alter table mejoras add column if not exists resuelto_en timestamptz;
 alter table mejoras add column if not exists aprobado_en timestamptz;
 alter table mejoras add column if not exists creado_por uuid references auth.users(id);
 
+-- Si la tarea nace de un item de inventario en mal estado (boton
+-- "Reportar como mejora"), queda esta referencia para ver el origen.
+alter table mejoras add column if not exists inventario_item_id uuid references inventario_items(id);
+
 -- Preventivo (fondos de Mazul) vs correctivo (lo paga el dueno). 'correctivo'
 -- como default porque es el caso mas comun de lo ya reportado hasta ahora.
 alter table mejoras add column if not exists tipo_mantenimiento text;

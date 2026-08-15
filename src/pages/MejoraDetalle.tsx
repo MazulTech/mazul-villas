@@ -316,6 +316,11 @@ export default function MejoraDetalle() {
         <span className="pill" style={{ background: "var(--sand)", color: "var(--espresso)" }}>
           {LABEL_TIPO_MANTENIMIENTO[mejora.tipoMantenimiento]}
         </span>
+        {mejora.inventarioItemId && (
+          <span className="pill" style={{ background: "var(--sand)", color: "var(--espresso)" }}>
+            Reportada desde inventario
+          </span>
+        )}
       </div>
 
       {error && (

@@ -235,6 +235,7 @@ export async function listarMejoras(villaId?: string, profile?: Profile | null):
     creadoEn: d.creado_en,
     resueltoEn: d.resuelto_en ?? undefined,
     aprobadoEn: d.aprobado_en ?? undefined,
+    inventarioItemId: d.inventario_item_id ?? undefined,
   }));
 }
 
@@ -271,6 +272,7 @@ export async function obtenerMejora(id: string): Promise<Mejora | null> {
     creadoEn: data.creado_en,
     resueltoEn: data.resuelto_en ?? undefined,
     aprobadoEn: data.aprobado_en ?? undefined,
+    inventarioItemId: data.inventario_item_id ?? undefined,
   };
 }
 
@@ -287,6 +289,9 @@ export interface NuevaMejoraInput {
   materialNecesario?: string;
   especialistaNecesario?: string;
   costoEstimado?: number;
+  // Si se reporta desde un item de inventario en mal estado, referencia a
+  // ese registro (ver botón "Reportar como mejora" en Inventario.tsx).
+  inventarioItemId?: string;
 }
 
 export async function crearMejora(input: NuevaMejoraInput): Promise<void> {
@@ -311,6 +316,7 @@ export async function crearMejora(input: NuevaMejoraInput): Promise<void> {
     material_necesario: input.materialNecesario || null,
     especialista_necesario: input.especialistaNecesario || null,
     costo_estimado: input.costoEstimado || null,
+    inventario_item_id: input.inventarioItemId || null,
   });
   if (error) throw error;
 }
