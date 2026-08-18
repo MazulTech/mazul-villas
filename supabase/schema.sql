@@ -183,11 +183,18 @@ create table if not exists inventario_items (
   villa_id text references villas(id) not null,
   zona text not null,
   nombre text not null,
+  -- Ej: "Muebles", "Electrodomésticos", "Cristalería y vajilla"... ver
+  -- src/data/categoriasInventario.ts. Opcional para no romper items ya
+  -- capturados antes de tener categorías.
+  categoria text,
   cantidad int not null default 1,
   condicion text not null check (condicion in ('bueno', 'regular', 'danado')),
   foto_url text,
   creado_en timestamptz not null default now()
 );
+-- Backstop por si la tabla ya existia de una version anterior sin esta
+-- columna (create table if not exists no la habria agregado).
+alter table inventario_items add column if not exists categoria text;
 
 -- Perfiles con rol, para las 4 audiencias del negocio: administracion
 -- (incluye supervisor/gerencia), mantenimiento, housekeeping (limpieza) y

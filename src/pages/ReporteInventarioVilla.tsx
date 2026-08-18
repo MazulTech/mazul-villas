@@ -7,14 +7,15 @@ import { useAuth } from "../contexts/AuthContext";
 import { puedeVerVilla } from "../lib/permissions";
 import { mensajeError } from "../lib/errores";
 import { conCache } from "../lib/offlineDb";
+import { generarPdfInventario } from "../lib/pdfInventario";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import Cargando from "../components/Cargando";
 
-// Reporte pensado para imprimir/guardar como PDF (window.print — el
-// navegador ya trae esa opción, no hace falta generar el PDF nosotros).
-// El CSS de impresión (ver theme.css, sección "Impresión de reportes")
-// oculta la barra superior, el menú inferior y todo lo marcado con
-// "no-print" al momento de imprimir.
+// El PDF se genera en el celular con jsPDF (ver lib/pdfInventario.ts) y se
+// descarga directo, sin pasar por window.print(): con la app instalada
+// como app (modo standalone), el diálogo de imprimir del navegador no
+// aparece en iPhone y en varios Android, así que "imprimir" ahí no hacía
+// nada. Generar el archivo nosotros siempre funciona, esté instalada o no.
 export default function ReporteInventarioVilla() {
   const { villaId = "" } = useParams();
   const { profile } = useAuth();
@@ -22,6 +23,7 @@ export default function ReporteInventarioVilla() {
   const [items, setItems] = useState<InventarioItem[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -63,6 +65,18 @@ export default function ReporteInventarioVilla() {
     );
   }
 
+  const descargarPdf = async () => {
+    setGenerando(true);
+    setError(null);
+    try {
+      await generarPdfInventario({ nombreVilla: etiquetaVilla(villa), items });
+    } catch (e) {
+      setError(mensajeError(e, "No se pudo generar el PDF."));
+    } finally {
+      setGenerando(false);
+    }
+  };
+
   return (
     <div>
       <Link to={`/villa/${villaId}/perfil`} className="no-print" style={{ fontSize: 12, color: "var(--terra-dark)", display: "inline-block", marginBottom: 12 }}>
@@ -80,8 +94,8 @@ export default function ReporteInventarioVilla() {
         </div>
       )}
 
-      <button className="btn btn-primary-dark no-print" style={{ marginBottom: 16 }} onClick={() => window.print()}>
-        Descargar / imprimir PDF
+      <button className="btn btn-primary-dark no-print" style={{ marginBottom: 16 }} disabled={generando} onClick={descargarPdf}>
+        {generando ? "Generando PDF..." : "Descargar PDF"}
       </button>
 
       {items.length === 0 && <div className="card card-dashed">Sin items registrados para esta villa.</div>}
@@ -116,6 +130,7 @@ export default function ReporteInventarioVilla() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>{it.nombre}</div>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              {it.categoria ? `${it.categoria} · ` : ""}
               {it.zona} · Cantidad: {it.cantidad} · {new Date(it.creadoEn).toLocaleDateString("es-MX")}
             </div>
           </div>

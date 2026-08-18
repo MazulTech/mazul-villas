@@ -111,6 +111,10 @@ export interface InventarioItem {
   villaId: string;
   zona: string;
   nombre: string;
+  // Ej: "Muebles", "Electrodomésticos", "Cristalería y vajilla"... ver
+  // src/data/categoriasInventario.ts. Opcional para no romper items ya
+  // capturados antes de tener categorías.
+  categoria?: string;
   cantidad: number;
   condicion: Condicion;
   fotoUrl?: string;

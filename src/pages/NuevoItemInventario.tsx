@@ -7,6 +7,7 @@ import type { Condicion } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
+import { CATEGORIAS_INVENTARIO, OTRA_CATEGORIA_INVENTARIO } from "../data/categoriasInventario";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeGestionarInventario } from "../lib/permissions";
 
@@ -24,6 +25,9 @@ export default function NuevoItemInventario() {
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(ZONAS[0]);
   const [zonaOtra, setZonaOtra] = useState("");
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>(CATEGORIAS_INVENTARIO[0]);
+  const [categoriaOtra, setCategoriaOtra] = useState("");
+  const categoria = categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO ? categoriaOtra : categoriaSeleccionada;
   const [nombre, setNombre] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
@@ -75,6 +79,7 @@ export default function NuevoItemInventario() {
         villaId,
         zona,
         nombre,
+        categoria: categoria || undefined,
         cantidad: Number(cantidad),
         condicion,
         fotoUrl: fotoUrl || undefined,
@@ -155,6 +160,25 @@ export default function NuevoItemInventario() {
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Item</label>
         <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="TV sala, refrigerador, sillas de exterior..." />
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">Categoría</label>
+        <select value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(e.target.value)}>
+          {CATEGORIAS_INVENTARIO.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO && (
+          <input
+            style={{ marginTop: 6 }}
+            value={categoriaOtra}
+            onChange={(e) => setCategoriaOtra(e.target.value)}
+            placeholder="Especifica la categoría"
+          />
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>

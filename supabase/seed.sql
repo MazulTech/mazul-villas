@@ -47,7 +47,7 @@ insert into insumos_catalogo (nombre, unidad, categoria, stock_actual, stock_min
 on conflict (nombre) do nothing;
 
 -- Inventario de ejemplo (Villa 2 = Sierra, la del recorrido de hoy).
-insert into inventario_items (villa_id, zona, nombre, cantidad, condicion) values
-  ('villa-2', 'Sala', 'TV sala', 1, 'bueno'),
-  ('villa-2', 'Cocina', 'Refrigerador', 1, 'regular'),
-  ('villa-2', 'Terraza', 'Sillas de exterior', 6, 'danado');
+insert into inventario_items (villa_id, zona, nombre, categoria, cantidad, condicion) values
+  ('villa-2', 'Sala', 'TV sala', 'Electrónica', 1, 'bueno'),
+  ('villa-2', 'Cocina', 'Refrigerador', 'Electrodomésticos', 1, 'regular'),
+  ('villa-2', 'Terraza', 'Sillas de exterior', 'Muebles', 6, 'danado');

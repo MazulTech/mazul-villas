@@ -7,6 +7,7 @@ import type { Condicion, InventarioItem } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
+import { CATEGORIAS_INVENTARIO, OTRA_CATEGORIA_INVENTARIO } from "../data/categoriasInventario";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeEditarInventario } from "../lib/permissions";
 import Cargando from "../components/Cargando";
@@ -32,6 +33,9 @@ export default function EditarItemInventario() {
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(ZONAS[0]);
   const [zonaOtra, setZonaOtra] = useState("");
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>(CATEGORIAS_INVENTARIO[0]);
+  const [categoriaOtra, setCategoriaOtra] = useState("");
+  const categoria = categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO ? categoriaOtra : categoriaSeleccionada;
   const [nombre, setNombre] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
@@ -56,6 +60,10 @@ export default function EditarItemInventario() {
         setVilla(villas.find((v) => v.id === it.villaId) ?? null);
         setZonaSeleccionada(ZONAS.includes(it.zona as (typeof ZONAS)[number]) ? it.zona : OTRA_ZONA);
         setZonaOtra(ZONAS.includes(it.zona as (typeof ZONAS)[number]) ? "" : it.zona);
+        const cat = it.categoria ?? "";
+        const catConocida = CATEGORIAS_INVENTARIO.includes(cat as (typeof CATEGORIAS_INVENTARIO)[number]);
+        setCategoriaSeleccionada(cat ? (catConocida ? cat : OTRA_CATEGORIA_INVENTARIO) : CATEGORIAS_INVENTARIO[0]);
+        setCategoriaOtra(cat && !catConocida ? cat : "");
         setNombre(it.nombre);
         setCantidad(String(it.cantidad));
         setCondicion(it.condicion);
@@ -104,6 +112,7 @@ export default function EditarItemInventario() {
       await actualizarInventarioItem(id, {
         zona,
         nombre,
+        categoria: categoria || undefined,
         cantidad: Number(cantidad),
         condicion,
         fotoUrl: fotoUrl || undefined,
@@ -201,6 +210,25 @@ export default function EditarItemInventario() {
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Item</label>
         <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="TV sala, refrigerador, sillas de exterior..." />
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">Categoría</label>
+        <select value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(e.target.value)}>
+          {CATEGORIAS_INVENTARIO.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO && (
+          <input
+            style={{ marginTop: 6 }}
+            value={categoriaOtra}
+            onChange={(e) => setCategoriaOtra(e.target.value)}
+            placeholder="Especifica la categoría"
+          />
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>

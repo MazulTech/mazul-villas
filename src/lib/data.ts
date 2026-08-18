@@ -453,7 +453,7 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, cantidad, condicion, foto_url, creado_en")
+    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, foto_url, creado_en")
     .eq("villa_id", villaId)
     .order("creado_en", { ascending: false });
   if (error) throw error;
@@ -462,6 +462,7 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
     villaId: d.villa_id,
     zona: d.zona,
     nombre: d.nombre,
+    categoria: d.categoria ?? undefined,
     cantidad: d.cantidad,
     condicion: d.condicion,
     fotoUrl: d.foto_url ?? undefined,
@@ -473,6 +474,7 @@ export interface NuevoInventarioInput {
   villaId: string;
   zona: string;
   nombre: string;
+  categoria?: string;
   cantidad: number;
   condicion: Condicion;
   fotoUrl?: string;
@@ -487,6 +489,7 @@ export async function crearInventarioItem(input: NuevoInventarioInput): Promise<
     villa_id: input.villaId,
     zona: input.zona,
     nombre: input.nombre,
+    categoria: input.categoria || null,
     cantidad: input.cantidad,
     condicion: input.condicion,
     foto_url: input.fotoUrl || null,
@@ -500,7 +503,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, cantidad, condicion, foto_url, creado_en")
+    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, foto_url, creado_en")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -510,6 +513,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
     villaId: data.villa_id,
     zona: data.zona,
     nombre: data.nombre,
+    categoria: data.categoria ?? undefined,
     cantidad: data.cantidad,
     condicion: data.condicion,
     fotoUrl: data.foto_url ?? undefined,
@@ -525,6 +529,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
 export interface EditarInventarioInput {
   zona: string;
   nombre: string;
+  categoria?: string;
   cantidad: number;
   condicion: Condicion;
   fotoUrl?: string;
@@ -540,10 +545,25 @@ export async function actualizarInventarioItem(id: string, input: EditarInventar
     .update({
       zona: input.zona,
       nombre: input.nombre,
+      categoria: input.categoria || null,
       cantidad: input.cantidad,
       condicion: input.condicion,
       foto_url: input.fotoUrl || null,
     })
     .eq("id", id);
+  if (error) throw error;
+}
+
+// Quita el item del inventario por completo: se capturó por error, o se
+// rompió/se desechó y ya no existe en la villa. Solo administracion/
+// supervision (ver puedeBorrarInventario en permissions.ts y la RLS
+// "inventario_delete" en supabase/schema.sql, que lo exige tambien del
+// lado del servidor).
+export async function eliminarInventarioItem(id: string): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Item de inventario borrado (demo, no persistido):", { id });
+    return;
+  }
+  const { error } = await supabase.from("inventario_items").delete().eq("id", id);
   if (error) throw error;
 }

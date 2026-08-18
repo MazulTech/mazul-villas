@@ -15,6 +15,8 @@ const LABEL_CONDICION_DESCRIPCION: Record<string, string> = {
   danado: "dañado",
 };
 
+const SIN_CATEGORIA = "Sin categoría";
+
 // Inventario de una sola villa: agregar, ver y descargar el reporte, todo
 // sin volver a elegir la villa (ver Inventario.tsx para el menú).
 export default function InventarioVilla() {
@@ -29,6 +31,7 @@ export default function InventarioVilla() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deCache, setDeCache] = useState(false);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
 
   useEffect(() => {
     conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
@@ -48,13 +51,23 @@ export default function InventarioVilla() {
       .finally(() => setCargando(false));
   }, [villaId]);
 
+  const categorias = useMemo(() => {
+    const set = new Set(items.map((it) => it.categoria || SIN_CATEGORIA));
+    return Array.from(set).sort();
+  }, [items]);
+
+  const itemsFiltrados = useMemo(() => {
+    if (categoriaFiltro === "todas") return items;
+    return items.filter((it) => (it.categoria || SIN_CATEGORIA) === categoriaFiltro);
+  }, [items, categoriaFiltro]);
+
   const porZona = useMemo(() => {
     const grupos: Record<string, InventarioItem[]> = {};
-    for (const it of items) {
+    for (const it of itemsFiltrados) {
       grupos[it.zona] = grupos[it.zona] ? [...grupos[it.zona], it] : [it];
     }
     return grupos;
-  }, [items]);
+  }, [itemsFiltrados]);
 
   if (!puedeVerVilla(profile, villaId)) {
     return <div className="card card-dashed">Tu rol no tiene acceso a esta villa.</div>;
@@ -102,10 +115,28 @@ export default function InventarioVilla() {
         </div>
       )}
 
+      {categorias.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <label className="field-label">Categoría</label>
+          <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)}>
+            <option value="todas">Todas las categorías</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {cargando && <Cargando texto="Cargando inventario..." />}
 
       {!cargando && items.length === 0 && (
         <div className="card card-dashed">Sin items registrados para esta villa todavía.</div>
+      )}
+
+      {!cargando && items.length > 0 && itemsFiltrados.length === 0 && (
+        <div className="card card-dashed">Sin items en esta categoría.</div>
       )}
 
       {Object.entries(porZona).map(([zona, itemsZona]) => (
@@ -142,7 +173,8 @@ export default function InventarioVilla() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700 }}>{it.nombre}</div>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    Cantidad: {it.cantidad} · {new Date(it.creadoEn).toLocaleDateString("es-MX")}
+                    {it.categoria ? `${it.categoria} · ` : ""}Cantidad: {it.cantidad} ·{" "}
+                    {new Date(it.creadoEn).toLocaleDateString("es-MX")}
                   </div>
                 </div>
                 <span className={CLASE_PILL_CONDICION[it.condicion]}>{LABEL_CONDICION[it.condicion]}</span>

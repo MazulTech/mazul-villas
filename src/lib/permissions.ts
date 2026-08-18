@@ -82,6 +82,13 @@ export function puedeEditarInventario(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 
+// Borrar un item de inventario (se capturó por error, o se rompió/se
+// desechó y ya no forma parte del inventario de la villa) es exclusivo de
+// administracion/supervisor, igual que corregirlo.
+export function puedeBorrarInventario(profile: Profile | null): boolean {
+  return esAdmin(profile);
+}
+
 // Borrar una tarea de mejora es exclusivo de administracion/supervisor
 // (por ejemplo, si se creo por error o esta duplicada).
 export function puedeBorrarMejora(profile: Profile | null): boolean {
