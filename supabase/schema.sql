@@ -356,14 +356,20 @@ create policy "incidencias_editar" on incidencias for all
   using (public.mi_rol() != 'dueno' and public.villa_visible(villa_id))
   with check (public.mi_rol() != 'dueno' and public.villa_visible(villa_id));
 
--- inventario: se ve segun la villa; solo administracion/supervisor/
--- mantenimiento agregan o actualizan items.
+-- inventario: se ve segun la villa; administracion/supervisor/mantenimiento
+-- agregan items nuevos, pero solo administracion/supervisor puede corregir
+-- (editar) un item ya registrado, por si mantenimiento se equivoco al
+-- capturarlo (ver puedeEditarInventario en permissions.ts).
 drop policy if exists "inventario_select" on inventario_items;
 create policy "inventario_select" on inventario_items for select using (public.villa_visible(villa_id));
 drop policy if exists "inventario_write" on inventario_items;
-create policy "inventario_write" on inventario_items for all
-  using (public.es_admin() or public.mi_rol() = 'mantenimiento')
+drop policy if exists "inventario_insert" on inventario_items;
+create policy "inventario_insert" on inventario_items for insert
   with check (public.es_admin() or public.mi_rol() = 'mantenimiento');
+drop policy if exists "inventario_update" on inventario_items;
+create policy "inventario_update" on inventario_items for update
+  using (public.es_admin())
+  with check (public.es_admin());
 
 -- ============================================================
 -- Trigger: aplica a nivel de base de datos las dos reglas clave del flujo

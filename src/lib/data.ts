@@ -493,3 +493,57 @@ export async function crearInventarioItem(input: NuevoInventarioInput): Promise<
   });
   if (error) throw error;
 }
+
+export async function obtenerInventarioItem(id: string): Promise<InventarioItem | null> {
+  if (!supabaseConfigured || !supabase) {
+    return mockInventario.find((i) => i.id === id) ?? null;
+  }
+  const { data, error } = await supabase
+    .from("inventario_items")
+    .select("id, villa_id, zona, nombre, cantidad, condicion, foto_url, creado_en")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    villaId: data.villa_id,
+    zona: data.zona,
+    nombre: data.nombre,
+    cantidad: data.cantidad,
+    condicion: data.condicion,
+    fotoUrl: data.foto_url ?? undefined,
+    creadoEn: data.creado_en,
+  };
+}
+
+// Corrige un item ya registrado (por ejemplo, un error de captura). No
+// cambia la villa a la que pertenece — solo administracion/supervision
+// puede hacer esto, ver puedeEditarInventario en permissions.ts (y la RLS
+// "inventario_update" en supabase/schema.sql, que lo exige tambien del
+// lado del servidor).
+export interface EditarInventarioInput {
+  zona: string;
+  nombre: string;
+  cantidad: number;
+  condicion: Condicion;
+  fotoUrl?: string;
+}
+
+export async function actualizarInventarioItem(id: string, input: EditarInventarioInput): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Item de inventario corregido (demo, no persistido):", { id, ...input });
+    return;
+  }
+  const { error } = await supabase
+    .from("inventario_items")
+    .update({
+      zona: input.zona,
+      nombre: input.nombre,
+      cantidad: input.cantidad,
+      condicion: input.condicion,
+      foto_url: input.fotoUrl || null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}

@@ -68,10 +68,18 @@ export function puedeRepartirInsumos(profile: Profile | null): boolean {
   return !esDueno(profile) && !!profile;
 }
 
-// Inventario: administracion, supervisor y mantenimiento pueden agregar o
-// actualizar items. Limpieza y dueno solo consultan.
+// Inventario: administracion, supervisor y mantenimiento pueden agregar
+// items nuevos. Limpieza y dueno solo consultan.
 export function puedeGestionarInventario(profile: Profile | null): boolean {
   return esAdmin(profile) || profile?.rol === "mantenimiento";
+}
+
+// Editar (corregir) un item ya registrado es exclusivo de
+// administracion/supervisor — por ejemplo si mantenimiento se equivoco al
+// capturar el nombre, la cantidad o la foto. Mantenimiento puede seguir
+// agregando items nuevos, pero no corregir los que ya existen.
+export function puedeEditarInventario(profile: Profile | null): boolean {
+  return esAdmin(profile);
 }
 
 // Borrar una tarea de mejora es exclusivo de administracion/supervisor

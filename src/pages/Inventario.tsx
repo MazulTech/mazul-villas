@@ -5,7 +5,7 @@ import type { InventarioItem } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeCrearCaso, puedeGestionarInventario } from "../lib/permissions";
+import { puedeCrearCaso, puedeEditarInventario, puedeGestionarInventario } from "../lib/permissions";
 import { mensajeError } from "../lib/errores";
 import { conCache } from "../lib/offlineDb";
 import Cargando from "../components/Cargando";
@@ -20,6 +20,7 @@ export default function Inventario() {
   const navigate = useNavigate();
   const gestionar = puedeGestionarInventario(profile);
   const reportar = puedeCrearCaso(profile);
+  const editar = puedeEditarInventario(profile);
   const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [villaId, setVillaId] = useState("");
   const [items, setItems] = useState<InventarioItem[]>([]);
@@ -131,26 +132,37 @@ export default function Inventario() {
                 </div>
                 <span className={CLASE_PILL_CONDICION[it.condicion]}>{LABEL_CONDICION[it.condicion]}</span>
               </div>
-              {reportar && it.condicion !== "bueno" && (
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ fontSize: 12, padding: "6px 10px" }}
-                  onClick={() =>
-                    navigate("/mejoras/nueva", {
-                      state: {
-                        villaId: it.villaId,
-                        zona: it.zona,
-                        descripcion: `${it.nombre} ${LABEL_CONDICION_DESCRIPCION[it.condicion] ?? "con problema"} (reportado desde inventario).`,
-                        fotoUrl: it.fotoUrl,
-                        inventarioItemId: it.id,
-                      },
-                    })
-                  }
-                >
-                  Reportar como mejora
-                </button>
-              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                {reportar && it.condicion !== "bueno" && (
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ fontSize: 12, padding: "6px 10px", flex: 1 }}
+                    onClick={() =>
+                      navigate("/mejoras/nueva", {
+                        state: {
+                          villaId: it.villaId,
+                          zona: it.zona,
+                          descripcion: `${it.nombre} ${LABEL_CONDICION_DESCRIPCION[it.condicion] ?? "con problema"} (reportado desde inventario).`,
+                          fotoUrl: it.fotoUrl,
+                          inventarioItemId: it.id,
+                        },
+                      })
+                    }
+                  >
+                    Reportar como mejora
+                  </button>
+                )}
+                {editar && (
+                  <Link
+                    to={`/inventario/${it.id}/editar`}
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12, padding: "6px 10px", textDecoration: "none", textAlign: "center", flex: reportar && it.condicion !== "bueno" ? "0 0 auto" : 1 }}
+                  >
+                    Editar
+                  </Link>
+                )}
+              </div>
             </div>
           ))}
         </div>
