@@ -6,6 +6,8 @@ import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeCrearCaso, puedeGestionarInventario } from "../lib/permissions";
+import { mensajeError } from "../lib/errores";
+import { conCache } from "../lib/offlineDb";
 import Cargando from "../components/Cargando";
 
 const LABEL_CONDICION_DESCRIPCION: Record<string, string> = {
@@ -23,22 +25,26 @@ export default function Inventario() {
   const [items, setItems] = useState<InventarioItem[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deCache, setDeCache] = useState(false);
 
   useEffect(() => {
-    listarVillas(profile)
-      .then((v) => {
-        setVillas(v);
-        setVillaId(v[0]?.id ?? "");
+    conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
+      .then(({ datos }) => {
+        setVillas(datos);
+        setVillaId((actual) => actual || datos[0]?.id || "");
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e) => setError(mensajeError(e, "No se pudieron cargar las villas.")));
   }, [profile]);
 
   useEffect(() => {
     if (!villaId) return;
     setCargando(true);
-    listarInventario(villaId)
-      .then((data) => setItems(data))
-      .catch((e: Error) => setError(e.message))
+    conCache(`inventario:${villaId}`, () => listarInventario(villaId))
+      .then(({ datos, deCache: usoCache }) => {
+        setItems(datos);
+        setDeCache(usoCache);
+      })
+      .catch((e) => setError(mensajeError(e, "No se pudo cargar el inventario.")))
       .finally(() => setCargando(false));
   }, [villaId]);
 
@@ -69,6 +75,14 @@ export default function Inventario() {
       {error && (
         <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
           <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+        </div>
+      )}
+
+      {deCache && (
+        <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+            Sin conexión: mostrando los últimos datos guardados en este celular.
+          </p>
         </div>
       )}
 

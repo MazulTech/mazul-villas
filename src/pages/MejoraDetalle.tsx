@@ -14,6 +14,8 @@ import {
 } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
+import { conCache, encolarAccion } from "../lib/offlineDb";
+import { sincronizarPendientes, useOnline } from "../lib/sync";
 import type { Mejora, Resolucion, TipoMantenimiento } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA } from "../lib/urgencia";
 import { CLASE_PILL_ESTADO_MEJORA, LABEL_ESTADO_MEJORA } from "../lib/estadoMejora";
@@ -38,18 +40,24 @@ export default function MejoraDetalle() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const online = useOnline();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mejora, setMejora] = useState<Mejora | null>(null);
   const [villas, setVillas] = useState<VillaBasica[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deCache, setDeCache] = useState(false);
 
   const [fotoDespuesUrl, setFotoDespuesUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
+  // Foto "después" cuando no hay señal: se guarda en el celular y se sube
+  // sola al sincronizar (ver lib/sync.ts).
+  const [fotoArchivoOffline, setFotoArchivoOffline] = useState<File | null>(null);
+  const [enviadoOffline, setEnviadoOffline] = useState(false);
 
   const [editandoDetalles, setEditandoDetalles] = useState(false);
   const [resolucionEdit, setResolucionEdit] = useState<Resolucion>("equipo");
@@ -70,16 +78,21 @@ export default function MejoraDetalle() {
   const cargar = () => {
     if (!id) return;
     setCargando(true);
-    obtenerMejora(id)
-      .then((m) => setMejora(m))
-      .catch((e: Error) => setError(e.message))
+    conCache(`mejora:${id}`, () => obtenerMejora(id))
+      .then(({ datos, deCache: usoCache }) => {
+        setMejora(datos);
+        setDeCache(usoCache);
+      })
+      .catch((e) => setError(mensajeError(e, "No se pudo cargar la tarea.")))
       .finally(() => setCargando(false));
   };
 
   useEffect(cargar, [id]);
 
   useEffect(() => {
-    listarVillas(profile).then(setVillas).catch(() => undefined);
+    conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
+      .then(({ datos }) => setVillas(datos))
+      .catch(() => undefined);
   }, [profile]);
 
   useEffect(() => {
@@ -95,6 +108,13 @@ export default function MejoraDetalle() {
       if (anterior && anterior.startsWith("blob:")) URL.revokeObjectURL(anterior);
       return urlLocal;
     });
+    if (!online) {
+      setFotoDespuesUrl(null);
+      setFotoArchivoOffline(file);
+      setErrorFoto(null);
+      return;
+    }
+    setFotoArchivoOffline(null);
     setSubiendoFoto(true);
     setErrorFoto(null);
     try {
@@ -113,13 +133,29 @@ export default function MejoraDetalle() {
   };
 
   const marcarResuelta = async () => {
-    if (!id || !fotoDespuesUrl) return;
+    if (!id) return;
+    if (!fotoDespuesUrl && !fotoArchivoOffline) return;
     setProcesando(true);
     setError(null);
     try {
-      await marcarMejoraResuelta(id, fotoDespuesUrl);
-      cargar();
+      if (online && fotoDespuesUrl) {
+        await marcarMejoraResuelta(id, fotoDespuesUrl);
+        cargar();
+      } else {
+        // Sin señal (o la foto no alcanzó a subirse): se guarda en el
+        // celular y se sube sola en cuanto regrese la conexión — ver
+        // lib/sync.ts. Si ya tenía URL se manda tal cual, sin resubirla.
+        await encolarAccion({
+          tipo: "marcar_resuelta",
+          payload: { id, villaId: mejora?.villaId, fotoDespuesUrl: fotoDespuesUrl ?? undefined },
+          foto: fotoDespuesUrl ? undefined : (fotoArchivoOffline ?? undefined),
+          fotoNombre: fotoArchivoOffline?.name,
+        });
+        void sincronizarPendientes();
+        setEnviadoOffline(true);
+      }
       setFotoDespuesUrl(null);
+      setFotoArchivoOffline(null);
       setPreviewUrl(null);
     } catch (e) {
       setError(mensajeError(e, "No se pudo marcar como resuelta."));
@@ -326,6 +362,22 @@ export default function MejoraDetalle() {
       {error && (
         <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
           <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+        </div>
+      )}
+
+      {deCache && (
+        <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+            Sin conexión: mostrando los últimos datos guardados en este celular.
+          </p>
+        </div>
+      )}
+
+      {enviadoOffline && (
+        <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0 }}>
+            Guardado en este celular. Se enviará solo cuando regrese la señal.
+          </p>
         </div>
       )}
 
@@ -648,6 +700,11 @@ export default function MejoraDetalle() {
                 {!subiendoFoto && fotoDespuesUrl && (
                   <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
                 )}
+                {!subiendoFoto && !fotoDespuesUrl && fotoArchivoOffline && (
+                  <p style={{ fontSize: 11, color: "var(--warn)", margin: "6px 0 0" }}>
+                    Foto lista, se sube cuando regrese la señal
+                  </p>
+                )}
               </>
             ) : (
               "Toca para tomar una foto nueva o elegir una de tu galería"
@@ -665,7 +722,11 @@ export default function MejoraDetalle() {
               {errorFoto} Toca la foto para intentar de nuevo.
             </p>
           )}
-          <button className="btn btn-primary-dark" disabled={!fotoDespuesUrl || subiendoFoto || procesando} onClick={marcarResuelta}>
+          <button
+            className="btn btn-primary-dark"
+            disabled={(!fotoDespuesUrl && !fotoArchivoOffline) || subiendoFoto || procesando}
+            onClick={marcarResuelta}
+          >
             {procesando ? "Guardando..." : "Marcar como resuelta y enviar a aprobación"}
           </button>
         </div>

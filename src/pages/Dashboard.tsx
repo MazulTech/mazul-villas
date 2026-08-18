@@ -4,6 +4,7 @@ import type { Villa } from "../types";
 import { listarVillasConEstado } from "../lib/data";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
+import { esDueno } from "../lib/permissions";
 import Cargando from "../components/Cargando";
 
 const ESTADO_PILL: Record<string, string> = {
@@ -20,6 +21,7 @@ const ESTADO_LABEL: Record<string, string> = {
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  const dueno = esDueno(profile);
   const [villas, setVillas] = useState<Villa[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export default function Dashboard() {
           {villas.map((v) => (
             <Link
               key={v.id}
-              to={`/villa/${v.id}/checklist`}
+              to={dueno ? `/villa/${v.id}/perfil` : `/villa/${v.id}/checklist`}
               className="card"
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textDecoration: "none", color: "inherit" }}
             >

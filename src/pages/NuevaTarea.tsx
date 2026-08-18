@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { crearMejora, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
+import { conCache, encolarAccion } from "../lib/offlineDb";
+import { sincronizarPendientes, useOnline } from "../lib/sync";
 import type { Resolucion, TipoMantenimiento } from "../types";
 import { CLASE_PILL_URGENCIA, LABEL_URGENCIA, SLA_POR_URGENCIA, calcularUrgencia } from "../lib/urgencia";
 import { etiquetaVilla } from "../lib/villas";
@@ -55,6 +57,7 @@ export default function NuevaTarea() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useAuth();
+  const online = useOnline();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const borradorInicial = useRef(leerBorrador()).current;
   // Si venimos de Inventario, ese contexto manda sobre cualquier borrador
@@ -79,6 +82,9 @@ export default function NuevaTarea() {
     prefill?.fotoUrl ?? borradorInicial?.fotoAntesUrl ?? null
   );
   const [inventarioItemId] = useState<string | undefined>(prefill?.inventarioItemId);
+  // Si no hay señal, la foto se queda en el celular (no se sube) y se
+  // manda junto con el resto de la tarea al sincronizar (ver lib/sync.ts).
+  const [fotoArchivoOffline, setFotoArchivoOffline] = useState<File | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [afectaSeguridadOperacion, setAfectaSeguridadOperacion] = useState<boolean | null>(
@@ -98,12 +104,12 @@ export default function NuevaTarea() {
   const puedeElegirTipo = puedeElegirTipoMantenimiento(profile);
 
   useEffect(() => {
-    listarVillas(profile)
-      .then((v) => {
-        setVillas(v);
-        setVillaId((actual) => actual || v[0]?.id || "");
+    conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
+      .then(({ datos }) => {
+        setVillas(datos);
+        setVillaId((actual) => actual || datos[0]?.id || "");
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e) => setError(mensajeError(e, "No se pudieron cargar las villas.")));
   }, [profile]);
 
   // Guarda un borrador con cada cambio. La foto ya se sube apenas se toma
@@ -163,6 +169,14 @@ export default function NuevaTarea() {
       if (anterior && anterior.startsWith("blob:")) URL.revokeObjectURL(anterior);
       return urlLocal;
     });
+    if (!online) {
+      // Sin señal: la foto se queda en el celular, no se intenta subir.
+      setFotoAntesUrl(null);
+      setFotoArchivoOffline(file);
+      setErrorFoto(null);
+      return;
+    }
+    setFotoArchivoOffline(null);
     setSubiendoFoto(true);
     setErrorFoto(null);
     try {
@@ -184,7 +198,7 @@ export default function NuevaTarea() {
   const faltantes: string[] = [];
   if (villaId === "") faltantes.push("elegir la villa");
   if (subiendoFoto) faltantes.push('esperar a que suba la foto "antes"');
-  else if (!fotoAntesUrl) faltantes.push('la foto "antes"');
+  else if (!fotoAntesUrl && !fotoArchivoOffline) faltantes.push('la foto "antes"');
   if (zona.trim().length === 0) faltantes.push("la zona");
   if (descripcion.trim().length === 0) faltantes.push("la descripción");
   if (afectaSeguridadOperacion === null) faltantes.push("responder si afecta seguridad/operación");
@@ -194,7 +208,8 @@ export default function NuevaTarea() {
   const puedeGuardar = faltantes.length === 0;
 
   const guardar = async () => {
-    if (afectaSeguridadOperacion === null || afectaAmenidad === null || !fotoAntesUrl) return;
+    if (afectaSeguridadOperacion === null || afectaAmenidad === null) return;
+    if (!fotoAntesUrl && !fotoArchivoOffline) return;
     // Quien no es admin no elige preventivo/correctivo (lo decide
     // administración después); se guarda como correctivo por default.
     const tipoAGuardar = puedeElegirTipo ? tipoMantenimiento : "correctivo";
@@ -202,11 +217,10 @@ export default function NuevaTarea() {
     setGuardando(true);
     setError(null);
     try {
-      await crearMejora({
+      const datosBase = {
         villaId,
         zona,
         descripcion,
-        fotoAntesUrl,
         afectaSeguridadOperacion,
         afectaAmenidad,
         tipoMantenimiento: tipoAGuardar,
@@ -215,7 +229,22 @@ export default function NuevaTarea() {
         especialistaNecesario: especialista || undefined,
         costoEstimado: costoEstimado ? Number(costoEstimado) : undefined,
         inventarioItemId,
-      });
+      };
+      if (online && fotoAntesUrl) {
+        await crearMejora({ ...datosBase, fotoAntesUrl });
+      } else {
+        // Sin señal (o la foto no alcanzó a subirse): se guarda en el
+        // celular y se sube sola en cuanto regrese la conexión. Si la foto
+        // ya tenía URL (p. ej. venía de un item de inventario) se manda tal
+        // cual, sin volver a subirla — ver lib/sync.ts.
+        await encolarAccion({
+          tipo: "crear_mejora",
+          payload: { ...datosBase, fotoAntesUrl: fotoAntesUrl ?? undefined },
+          foto: fotoAntesUrl ? undefined : (fotoArchivoOffline ?? undefined),
+          fotoNombre: fotoArchivoOffline?.name,
+        });
+        void sincronizarPendientes();
+      }
       borrarBorrador();
       navigate("/mejoras");
     } catch (e) {
@@ -229,6 +258,14 @@ export default function NuevaTarea() {
     <div>
       <h1 className="page-title">Nueva tarea de mejora</h1>
       <p className="page-sub">Aplica para cualquier villa, no solo la del recorrido de hoy</p>
+
+      {!online && (
+        <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+            Sin conexión: la tarea se guarda en este celular y se sube sola cuando regrese la señal.
+          </p>
+        </div>
+      )}
 
       {inventarioItemId && (
         <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
@@ -274,6 +311,11 @@ export default function NuevaTarea() {
               )}
               {!subiendoFoto && fotoAntesUrl && (
                 <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
+              )}
+              {!subiendoFoto && !fotoAntesUrl && fotoArchivoOffline && (
+                <p style={{ fontSize: 11, color: "var(--warn)", margin: "6px 0 0" }}>
+                  Foto lista, se sube cuando regrese la señal
+                </p>
               )}
             </>
           ) : (

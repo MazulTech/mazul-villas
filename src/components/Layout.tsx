@@ -3,10 +3,13 @@ import { Home, Package, ClipboardCheck, Boxes, LogOut } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { LABEL_ROL } from "../lib/permissions";
+import { useOnline, usePendientes } from "../lib/sync";
 
 export default function Layout() {
   const { profile, signOut } = useAuth();
   const esDemo = profile?.id === "demo";
+  const online = useOnline();
+  const pendientes = usePendientes();
 
   return (
     <div className="app-shell">
@@ -47,6 +50,22 @@ export default function Layout() {
           </div>
         )}
       </header>
+      {(!online || pendientes.length > 0) && (
+        <div
+          style={{
+            background: online ? "var(--warn-bg)" : "var(--danger)",
+            color: online ? "var(--warn)" : "#fff",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "6px 14px",
+            textAlign: "center",
+          }}
+        >
+          {!online && "Sin conexión. "}
+          {pendientes.length > 0 &&
+            `${pendientes.length} ${pendientes.length === 1 ? "tarea guardada" : "tareas guardadas"} en este celular, pendiente${pendientes.length === 1 ? "" : "s"} de subir.`}
+        </div>
+      )}
       <main className="content">
         <ErrorBoundary>
           <Outlet />

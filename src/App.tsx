@@ -15,6 +15,8 @@ import MejoraDetalle from "./pages/MejoraDetalle";
 import NuevaTarea from "./pages/NuevaTarea";
 import Inventario from "./pages/Inventario";
 import NuevoItemInventario from "./pages/NuevoItemInventario";
+import VillaPerfil from "./pages/VillaPerfil";
+import ReporteInventarioVilla from "./pages/ReporteInventarioVilla";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { profile, cargando } = useAuth();
@@ -45,6 +47,8 @@ function App() {
         >
           <Route path="/" element={<Dashboard />} />
           <Route path="/villa/:villaId/checklist" element={<Checklist />} />
+          <Route path="/villa/:villaId/perfil" element={<VillaPerfil />} />
+          <Route path="/villa/:villaId/reporte-inventario" element={<ReporteInventarioVilla />} />
           <Route path="/insumos" element={<Insumos />} />
           <Route path="/almacen" element={<AlmacenGeneral />} />
           <Route path="/almacen/nuevo" element={<NuevoInsumoCatalogo />} />

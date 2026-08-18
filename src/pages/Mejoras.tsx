@@ -7,6 +7,8 @@ import { CLASE_PILL_ESTADO_MEJORA, LABEL_ESTADO_MEJORA } from "../lib/estadoMejo
 import { LABEL_RESOLUCION } from "../lib/resolucion";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
+import { mensajeError } from "../lib/errores";
+import { conCache } from "../lib/offlineDb";
 import Cargando from "../components/Cargando";
 
 export default function Mejoras() {
@@ -16,18 +18,24 @@ export default function Mejoras() {
   const [mejoras, setMejoras] = useState<Mejora[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deCache, setDeCache] = useState(false);
 
   useEffect(() => {
-    listarVillas(profile)
-      .then(setVillas)
-      .catch((e: Error) => setError(e.message));
+    conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
+      .then(({ datos }) => setVillas(datos))
+      .catch((e) => setError(mensajeError(e, "No se pudieron cargar las villas.")));
   }, [profile]);
 
   useEffect(() => {
     setCargando(true);
-    listarMejoras(villaFiltro === "todas" ? undefined : villaFiltro, profile)
-      .then((data) => setMejoras(data))
-      .catch((e: Error) => setError(e.message))
+    conCache(`mejoras:${villaFiltro}:${profile?.id ?? "anon"}`, () =>
+      listarMejoras(villaFiltro === "todas" ? undefined : villaFiltro, profile)
+    )
+      .then(({ datos, deCache: usoCache }) => {
+        setMejoras(datos);
+        setDeCache(usoCache);
+      })
+      .catch((e) => setError(mensajeError(e, "No se pudieron cargar las mejoras.")))
       .finally(() => setCargando(false));
   }, [villaFiltro, profile]);
 
@@ -61,6 +69,14 @@ export default function Mejoras() {
       {error && (
         <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
           <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+        </div>
+      )}
+
+      {deCache && (
+        <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+            Sin conexión: mostrando los últimos datos guardados en este celular.
+          </p>
         </div>
       )}
 

@@ -333,3 +333,36 @@ textarea {
   font-size: 10px;
   color: var(--espresso);
 }
+
+/* Impresión de reportes (p. ej. reporte de inventario de una villa): al
+   imprimir/guardar como PDF con window.print(), se oculta todo lo que no
+   es parte del reporte en sí (barra superior, menú inferior, botones) y se
+   quita el "marco" de la app para que se vea como una hoja normal. */
+@media print {
+  .topbar,
+  .bottom-nav,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+
+  .app-shell {
+    max-width: 100% !important;
+    min-height: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .content {
+    padding-bottom: 16px !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}
