@@ -18,6 +18,7 @@ import NuevoItemInventario from "./pages/NuevoItemInventario";
 import EditarItemInventario from "./pages/EditarItemInventario";
 import VillaPerfil from "./pages/VillaPerfil";
 import ReporteInventarioVilla from "./pages/ReporteInventarioVilla";
+import NuevoDueno from "./pages/NuevoDueno";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { profile, cargando } = useAuth();
@@ -60,6 +61,7 @@ function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/inventario/nuevo" element={<NuevoItemInventario />} />
           <Route path="/inventario/:id/editar" element={<EditarItemInventario />} />
+          <Route path="/admin/duenos/nuevo" element={<NuevoDueno />} />
         </Route>
       </Routes>
     </AuthProvider>

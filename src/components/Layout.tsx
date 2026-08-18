@@ -1,8 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Package, ClipboardCheck, Boxes, LogOut } from "lucide-react";
+import { Home, Package, ClipboardCheck, Boxes, LogOut, UserPlus } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
-import { LABEL_ROL } from "../lib/permissions";
+import { esAdmin, LABEL_ROL } from "../lib/permissions";
 import { useOnline, usePendientes } from "../lib/sync";
 
 export default function Layout() {
@@ -27,6 +27,27 @@ export default function Layout() {
               <div style={{ fontSize: 12, color: "var(--cream)", fontWeight: 700 }}>{profile.nombre || "Sin nombre"}</div>
               <div style={{ fontSize: 10, color: "var(--sand)" }}>{LABEL_ROL[profile.rol]}</div>
             </div>
+            {esAdmin(profile) && (
+              <NavLink
+                to="/admin/duenos/nuevo"
+                title="Crear cuenta de dueño"
+                aria-label="Crear cuenta de dueño"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  border: "1px solid rgba(233, 217, 195, 0.35)",
+                  background: "rgba(233, 217, 195, 0.1)",
+                  color: "var(--sand)",
+                  flexShrink: 0,
+                }}
+              >
+                <UserPlus size={16} strokeWidth={2} />
+              </NavLink>
+            )}
             <button
               onClick={() => signOut()}
               title="Cerrar sesión"
