@@ -97,6 +97,7 @@ export default function EditarItemInventario() {
   const puedeGuardar = nombre.trim().length > 0 && zona.trim().length > 0 && Number(cantidad) > 0 && !subiendoFoto;
 
   const guardar = async () => {
+    if (!item) return;
     setGuardando(true);
     setError(null);
     try {
@@ -107,7 +108,7 @@ export default function EditarItemInventario() {
         condicion,
         fotoUrl: fotoUrl || undefined,
       });
-      navigate("/inventario");
+      navigate(`/inventario/villa/${item.villaId}`);
     } catch (e) {
       setError(mensajeError(e, "No se pudo guardar la corrección."));
     } finally {

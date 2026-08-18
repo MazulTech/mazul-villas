@@ -14,6 +14,7 @@ import Mejoras from "./pages/Mejoras";
 import MejoraDetalle from "./pages/MejoraDetalle";
 import NuevaTarea from "./pages/NuevaTarea";
 import Inventario from "./pages/Inventario";
+import InventarioVilla from "./pages/InventarioVilla";
 import NuevoItemInventario from "./pages/NuevoItemInventario";
 import EditarItemInventario from "./pages/EditarItemInventario";
 import VillaPerfil from "./pages/VillaPerfil";
@@ -59,7 +60,8 @@ function App() {
           <Route path="/mejoras/nueva" element={<NuevaTarea />} />
           <Route path="/mejoras/:id" element={<MejoraDetalle />} />
           <Route path="/inventario" element={<Inventario />} />
-          <Route path="/inventario/nuevo" element={<NuevoItemInventario />} />
+          <Route path="/inventario/villa/:villaId" element={<InventarioVilla />} />
+          <Route path="/inventario/villa/:villaId/nuevo" element={<NuevoItemInventario />} />
           <Route path="/inventario/:id/editar" element={<EditarItemInventario />} />
           <Route path="/admin/duenos/nuevo" element={<NuevoDueno />} />
         </Route>

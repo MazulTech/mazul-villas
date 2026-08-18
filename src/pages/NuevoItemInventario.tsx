@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { crearInventarioItem, listarVillas, type VillaBasica } from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
@@ -12,13 +12,15 @@ import { puedeGestionarInventario } from "../lib/permissions";
 
 const CONDICIONES: Condicion[] = ["bueno", "regular", "danado"];
 
+// Se llega aquí desde InventarioVilla.tsx, así que la villa ya se sabe (no
+// hay que volver a elegirla) — al guardar, regresa a esa misma villa.
 export default function NuevoItemInventario() {
+  const { villaId = "" } = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
   const autorizado = puedeGestionarInventario(profile);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [villas, setVillas] = useState<VillaBasica[]>([]);
-  const [villaId, setVillaId] = useState("");
+  const [villa, setVilla] = useState<VillaBasica | null>(null);
   const [zonaSeleccionada, setZonaSeleccionada] = useState<string>(ZONAS[0]);
   const [zonaOtra, setZonaOtra] = useState("");
   const zona = zonaSeleccionada === OTRA_ZONA ? zonaOtra : zonaSeleccionada;
@@ -34,12 +36,9 @@ export default function NuevoItemInventario() {
 
   useEffect(() => {
     listarVillas(profile)
-      .then((v) => {
-        setVillas(v);
-        setVillaId(v[0]?.id ?? "");
-      })
+      .then((v) => setVilla(v.find((x) => x.id === villaId) ?? null))
       .catch((e: Error) => setError(e.message));
-  }, [profile]);
+  }, [profile, villaId]);
 
   useEffect(() => {
     return () => {
@@ -66,8 +65,7 @@ export default function NuevoItemInventario() {
     }
   };
 
-  const puedeGuardar =
-    nombre.trim().length > 0 && zona.trim().length > 0 && villaId !== "" && Number(cantidad) > 0 && !subiendoFoto;
+  const puedeGuardar = nombre.trim().length > 0 && zona.trim().length > 0 && Number(cantidad) > 0 && !subiendoFoto;
 
   const guardar = async () => {
     setGuardando(true);
@@ -81,7 +79,7 @@ export default function NuevoItemInventario() {
         condicion,
         fotoUrl: fotoUrl || undefined,
       });
-      navigate("/inventario");
+      navigate(`/inventario/villa/${villaId}`);
     } catch (e) {
       setError(mensajeError(e, "No se pudo guardar el item."));
     } finally {
@@ -101,18 +99,7 @@ export default function NuevoItemInventario() {
   return (
     <div>
       <h1 className="page-title">Nuevo item de inventario</h1>
-      <p className="page-sub">Aplica para cualquier villa</p>
-
-      <div style={{ marginBottom: 10 }}>
-        <label className="field-label">Villa</label>
-        <select value={villaId} onChange={(e) => setVillaId(e.target.value)}>
-          {villas.map((v) => (
-            <option key={v.id} value={v.id}>
-              {etiquetaVilla(v)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <p className="page-sub">{villa ? etiquetaVilla(villa) : "Villa"}</p>
 
       <div
         className="card card-dashed"
