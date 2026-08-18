@@ -377,6 +377,12 @@ drop policy if exists "inventario_update" on inventario_items;
 create policy "inventario_update" on inventario_items for update
   using (public.es_admin())
   with check (public.es_admin());
+-- Borrar (quitar del inventario por completo, ya sea por error de captura o
+-- porque el item se rompio/desecho) es exclusivo de administracion/
+-- supervisor, igual que corregirlo (ver puedeBorrarInventario en
+-- permissions.ts).
+drop policy if exists "inventario_delete" on inventario_items;
+create policy "inventario_delete" on inventario_items for delete using (public.es_admin());
 
 -- ============================================================
 -- Trigger: aplica a nivel de base de datos las dos reglas clave del flujo

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { actualizarInventarioItem, obtenerInventarioItem, listarVillas, type VillaBasica } from "../lib/data";
+import {
+  actualizarInventarioItem,
+  eliminarInventarioItem,
+  obtenerInventarioItem,
+  listarVillas,
+  type VillaBasica,
+} from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
 import type { Condicion, InventarioItem } from "../types";
@@ -9,7 +15,7 @@ import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
 import { CATEGORIAS_INVENTARIO, OTRA_CATEGORIA_INVENTARIO } from "../data/categoriasInventario";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeEditarInventario } from "../lib/permissions";
+import { puedeBorrarInventario, puedeEditarInventario } from "../lib/permissions";
 import Cargando from "../components/Cargando";
 
 const CONDICIONES: Condicion[] = ["bueno", "regular", "danado"];
@@ -44,6 +50,7 @@ export default function EditarItemInventario() {
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -125,6 +132,20 @@ export default function EditarItemInventario() {
     }
   };
 
+  const borrar = async () => {
+    if (!item) return;
+    if (!window.confirm("¿Eliminar este item del inventario? No se puede deshacer.")) return;
+    setBorrando(true);
+    setError(null);
+    try {
+      await eliminarInventarioItem(item.id);
+      navigate(`/inventario/villa/${item.villaId}`);
+    } catch (e) {
+      setError(mensajeError(e, "No se pudo eliminar el item."));
+      setBorrando(false);
+    }
+  };
+
   if (!autorizado) {
     return (
       <div>
@@ -137,6 +158,8 @@ export default function EditarItemInventario() {
   if (cargando) {
     return <Cargando texto="Cargando item..." />;
   }
+
+  const puedeBorrar = puedeBorrarInventario(profile);
 
   if (!item) {
     return (
@@ -266,6 +289,22 @@ export default function EditarItemInventario() {
       <button className="btn btn-primary-dark" disabled={!puedeGuardar || guardando} onClick={guardar}>
         {guardando ? "Guardando..." : "Guardar corrección"}
       </button>
+
+      {puedeBorrar && (
+        <button
+          className="btn"
+          disabled={borrando}
+          onClick={borrar}
+          style={{
+            marginTop: 20,
+            border: "1px solid var(--danger)",
+            color: "var(--danger)",
+            background: "transparent",
+          }}
+        >
+          {borrando ? "Eliminando..." : "Eliminar item del inventario"}
+        </button>
+      )}
     </div>
   );
 }
