@@ -141,13 +141,6 @@ export default function VillaPerfil() {
           <div className="lbl">necesitan atención</div>
         </div>
       </div>
-      <Link
-        to={`/villa/${villaId}/reporte-inventario`}
-        className="btn btn-secondary"
-        style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 18 }}
-      >
-        Descargar reporte de inventario (PDF)
-      </Link>
 
       <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px", fontWeight: 700 }}>MEJORAS</p>
       <div className="stat-grid">

@@ -18,7 +18,6 @@ import InventarioVilla from "./pages/InventarioVilla";
 import NuevoItemInventario from "./pages/NuevoItemInventario";
 import EditarItemInventario from "./pages/EditarItemInventario";
 import VillaPerfil from "./pages/VillaPerfil";
-import ReporteInventarioVilla from "./pages/ReporteInventarioVilla";
 import NuevoDueno from "./pages/NuevoDueno";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -51,7 +50,6 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/villa/:villaId/checklist" element={<Checklist />} />
           <Route path="/villa/:villaId/perfil" element={<VillaPerfil />} />
-          <Route path="/villa/:villaId/reporte-inventario" element={<ReporteInventarioVilla />} />
           <Route path="/insumos" element={<Insumos />} />
           <Route path="/almacen" element={<AlmacenGeneral />} />
           <Route path="/almacen/nuevo" element={<NuevoInsumoCatalogo />} />

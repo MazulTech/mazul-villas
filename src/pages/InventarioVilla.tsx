@@ -92,13 +92,6 @@ export default function InventarioVilla() {
             + Agregar item
           </Link>
         )}
-        <Link
-          to={`/villa/${villaId}/reporte-inventario`}
-          className="btn btn-secondary"
-          style={{ textDecoration: "none", textAlign: "center", flex: 1 }}
-        >
-          Descargar reporte
-        </Link>
       </div>
 
       {error && (
