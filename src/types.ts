@@ -117,6 +117,11 @@ export interface InventarioItem {
   categoria?: string;
   cantidad: number;
   condicion: Condicion;
+  // Qué está mal, cuando condicion no es "bueno" (ej. "pata rota", "ya no
+  // enciende", "mancha en el respaldo"). Sin esto, "Dañado" no dice qué
+  // pasó realmente. Opcional para no romper items ya capturados antes de
+  // tener este campo.
+  descripcionCondicion?: string;
   fotoUrl?: string;
   creadoEn: string;
 }

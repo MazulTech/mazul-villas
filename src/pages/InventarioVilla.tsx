@@ -32,6 +32,7 @@ export default function InventarioVilla() {
   const [error, setError] = useState<string | null>(null);
   const [deCache, setDeCache] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
 
   useEffect(() => {
     conCache(`villas:${profile?.id ?? "anon"}`, () => listarVillas(profile))
@@ -142,7 +143,8 @@ export default function InventarioVilla() {
                   <img
                     src={it.fotoUrl}
                     alt={it.nombre}
-                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                    onClick={() => setFotoAmpliada(it.fotoUrl!)}
+                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "pointer" }}
                   />
                 ) : (
                   <div
@@ -172,6 +174,9 @@ export default function InventarioVilla() {
                 </div>
                 <span className={CLASE_PILL_CONDICION[it.condicion]}>{LABEL_CONDICION[it.condicion]}</span>
               </div>
+              {it.condicion !== "bueno" && it.descripcionCondicion && (
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>{it.descripcionCondicion}</p>
+              )}
               <div style={{ display: "flex", gap: 8 }}>
                 {reportar && it.condicion !== "bueno" && (
                   <button
@@ -207,6 +212,29 @@ export default function InventarioVilla() {
           ))}
         </div>
       ))}
+
+      {fotoAmpliada && (
+        <div
+          onClick={() => setFotoAmpliada(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(20, 15, 10, 0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+            padding: 20,
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={fotoAmpliada}
+            alt="Foto ampliada"
+            style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 10, objectFit: "contain" }}
+          />
+        </div>
+      )}
     </div>
   );
 }

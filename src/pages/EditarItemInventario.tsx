@@ -45,6 +45,7 @@ export default function EditarItemInventario() {
   const [nombre, setNombre] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
+  const [descripcionCondicion, setDescripcionCondicion] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -74,6 +75,7 @@ export default function EditarItemInventario() {
         setNombre(it.nombre);
         setCantidad(String(it.cantidad));
         setCondicion(it.condicion);
+        setDescripcionCondicion(it.descripcionCondicion ?? "");
         setFotoUrl(it.fotoUrl ?? null);
         setPreviewUrl(it.fotoUrl ?? null);
       })
@@ -122,6 +124,7 @@ export default function EditarItemInventario() {
         categoria: categoria || undefined,
         cantidad: Number(cantidad),
         condicion,
+        descripcionCondicion: condicion !== "bueno" ? descripcionCondicion || undefined : undefined,
         fotoUrl: fotoUrl || undefined,
       });
       navigate(`/inventario/villa/${item.villaId}`);
@@ -269,7 +272,10 @@ export default function EditarItemInventario() {
               key={c}
               type="button"
               className={`choice-row${condicion === c ? " selected" : ""}`}
-              onClick={() => setCondicion(c)}
+              onClick={() => {
+                setCondicion(c);
+                if (c === "bueno") setDescripcionCondicion("");
+              }}
               style={{ flex: 1, justifyContent: "center" }}
             >
               <span className={CLASE_PILL_CONDICION[c]} style={{ marginRight: condicion === c ? 6 : 0 }}>
@@ -278,6 +284,14 @@ export default function EditarItemInventario() {
             </button>
           ))}
         </div>
+        {condicion !== "bueno" && (
+          <textarea
+            style={{ marginTop: 8, width: "100%", minHeight: 60, resize: "vertical" }}
+            value={descripcionCondicion}
+            onChange={(e) => setDescripcionCondicion(e.target.value)}
+            placeholder="¿Qué tiene? Ej: pata rota, ya no enciende, mancha en el respaldo..."
+          />
+        )}
       </div>
 
       {error && (

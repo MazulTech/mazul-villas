@@ -195,6 +195,9 @@ create table if not exists inventario_items (
 -- Backstop por si la tabla ya existia de una version anterior sin esta
 -- columna (create table if not exists no la habria agregado).
 alter table inventario_items add column if not exists categoria text;
+-- Que esta mal, cuando condicion no es "bueno" (ej. "pata rota", "ya no
+-- enciende"). Sin esto, "Danado" no decia que habia pasado realmente.
+alter table inventario_items add column if not exists descripcion_condicion text;
 
 -- Perfiles con rol, para las 4 audiencias del negocio: administracion
 -- (incluye supervisor/gerencia), mantenimiento, housekeeping (limpieza) y

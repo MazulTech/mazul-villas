@@ -453,7 +453,7 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, foto_url, creado_en")
+    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, foto_url, creado_en")
     .eq("villa_id", villaId)
     .order("creado_en", { ascending: false });
   if (error) throw error;
@@ -465,6 +465,7 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
     categoria: d.categoria ?? undefined,
     cantidad: d.cantidad,
     condicion: d.condicion,
+    descripcionCondicion: d.descripcion_condicion ?? undefined,
     fotoUrl: d.foto_url ?? undefined,
     creadoEn: d.creado_en,
   }));
@@ -477,6 +478,7 @@ export interface NuevoInventarioInput {
   categoria?: string;
   cantidad: number;
   condicion: Condicion;
+  descripcionCondicion?: string;
   fotoUrl?: string;
 }
 
@@ -492,6 +494,7 @@ export async function crearInventarioItem(input: NuevoInventarioInput): Promise<
     categoria: input.categoria || null,
     cantidad: input.cantidad,
     condicion: input.condicion,
+    descripcion_condicion: input.descripcionCondicion || null,
     foto_url: input.fotoUrl || null,
   });
   if (error) throw error;
@@ -503,7 +506,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, foto_url, creado_en")
+    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, foto_url, creado_en")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -516,6 +519,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
     categoria: data.categoria ?? undefined,
     cantidad: data.cantidad,
     condicion: data.condicion,
+    descripcionCondicion: data.descripcion_condicion ?? undefined,
     fotoUrl: data.foto_url ?? undefined,
     creadoEn: data.creado_en,
   };
@@ -532,6 +536,7 @@ export interface EditarInventarioInput {
   categoria?: string;
   cantidad: number;
   condicion: Condicion;
+  descripcionCondicion?: string;
   fotoUrl?: string;
 }
 
@@ -548,6 +553,7 @@ export async function actualizarInventarioItem(id: string, input: EditarInventar
       categoria: input.categoria || null,
       cantidad: input.cantidad,
       condicion: input.condicion,
+      descripcion_condicion: input.descripcionCondicion || null,
       foto_url: input.fotoUrl || null,
     })
     .eq("id", id);
