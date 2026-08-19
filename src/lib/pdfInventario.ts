@@ -7,13 +7,24 @@ const LABEL_CONDICION: Record<string, string> = {
   danado: "Dañado",
 };
 
+// Las fotos que sube el equipo son la foto original de la cámara (varios MB
+// cada una); con varios items en una villa, descargarlas todas antes de
+// generar el PDF puede tardar mucho con datos móviles y antes se sentía
+// como que "Generando PDF..." se quedaba trabado para siempre. Por eso cada
+// foto tiene un límite de tiempo: si no llega a tiempo, ese item sale sin
+// foto en el reporte pero el PDF se genera de todas formas.
+const TIEMPO_MAXIMO_FOTO_MS = 8000;
+
 // Descarga una foto y la deja lista para meterla en el PDF (jsPDF necesita
 // la imagen como data URL, no como link). Si falla (sin señal, CORS, la
-// URL ya no existe...) regresa null y el reporte se genera igual, nada más
-// sin esa foto — nunca se debe bloquear la descarga por una imagen.
+// URL ya no existe, tarda demasiado...) regresa null y el reporte se genera
+// igual, nada más sin esa foto — nunca se debe bloquear la descarga por una
+// imagen.
 async function imagenComoDataUrl(url: string): Promise<{ dataUrl: string; formato: "JPEG" | "PNG" } | null> {
+  const controlador = new AbortController();
+  const limite = setTimeout(() => controlador.abort(), TIEMPO_MAXIMO_FOTO_MS);
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(url, { signal: controlador.signal });
     if (!resp.ok) return null;
     const blob = await resp.blob();
     const formato = blob.type.includes("png") ? "PNG" : "JPEG";
@@ -26,6 +37,8 @@ async function imagenComoDataUrl(url: string): Promise<{ dataUrl: string; format
     return { dataUrl, formato };
   } catch {
     return null;
+  } finally {
+    clearTimeout(limite);
   }
 }
 
