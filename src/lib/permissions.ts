@@ -69,9 +69,17 @@ export function puedeRepartirInsumos(profile: Profile | null): boolean {
 }
 
 // Inventario: administracion, supervisor y mantenimiento pueden agregar
-// items nuevos. Limpieza y dueno solo consultan.
+// items nuevos. Limpieza normalmente solo consulta y reporta estado (ver
+// puedeReportarCondicionInventario) — salvo la persona puntual a la que se
+// le dio la excepcion inventarioExtra al crear su cuenta (ver
+// NuevoDueno.tsx), por ejemplo alguien de limpieza que esta ayudando a
+// levantar el inventario completo. Dueno nunca agrega.
 export function puedeGestionarInventario(profile: Profile | null): boolean {
-  return esAdmin(profile) || profile?.rol === "mantenimiento";
+  return (
+    esAdmin(profile) ||
+    profile?.rol === "mantenimiento" ||
+    (profile?.rol === "housekeeping" && profile.inventarioExtra === true)
+  );
 }
 
 // Editar (corregir) un item ya registrado es exclusivo de
@@ -82,10 +90,29 @@ export function puedeEditarInventario(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 
+// Marcar un item existente como "Regular"/"Dañado" y describir qué tiene
+// también lo puede hacer limpieza, que es quien más tiempo pasa en las
+// villas y detecta las roturas primero. Corregir el resto de los datos
+// (nombre, zona, cantidad, categoría, foto) o borrar el item sigue siendo
+// exclusivo de administración/supervisión — ver puedeEditarInventario y
+// puedeBorrarInventario.
+export function puedeReportarCondicionInventario(profile: Profile | null): boolean {
+  return esAdmin(profile) || profile?.rol === "housekeeping";
+}
+
 // Borrar un item de inventario (se capturó por error, o se rompió/se
 // desechó y ya no forma parte del inventario de la villa) es exclusivo de
 // administracion/supervisor, igual que corregirlo.
 export function puedeBorrarInventario(profile: Profile | null): boolean {
+  return esAdmin(profile);
+}
+
+// Registrar, corregir o borrar una renta (quien se hospedo, fechas, cuanto
+// se pago, por que canal) es exclusivo de administracion/supervision: es
+// informacion financiera de cada villa. El dueno y el resto de roles solo
+// consultan (ver puedeVerVilla para el filtro de que villas puede ver
+// cada quien).
+export function puedeGestionarReservas(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 

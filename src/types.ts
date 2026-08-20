@@ -8,6 +8,11 @@ export interface Profile {
   // Solo aplica a duenos: los ids de villa a las que tienen acceso.
   // Para el resto de roles se ignora (ven todas las villas).
   villasAsignadas: string[];
+  // Excepcion por persona (no por rol): un miembro de limpieza en
+  // particular al que se le dio acceso de agregar inventario nuevo, ademas
+  // de solo reportar el estado de items ya existentes. Se activa al crear
+  // su cuenta (ver NuevoDueno.tsx) — false para el resto de roles.
+  inventarioExtra: boolean;
 }
 
 export interface Villa {
@@ -123,5 +128,21 @@ export interface InventarioItem {
   // tener este campo.
   descripcionCondicion?: string;
   fotoUrl?: string;
+  creadoEn: string;
+}
+
+// Registro de una renta ya cobrada (no reservaciones futuras/calendario,
+// solo la bitácora de lo que ya se cobró). Lo captura administración; el
+// dueño de la villa la consulta como reporte de ingresos. Ver
+// src/data/canalesReserva.ts para el catálogo de canales.
+export interface Reserva {
+  id: string;
+  villaId: string;
+  huesped?: string;
+  fechaInicio: string; // ISO date (yyyy-mm-dd)
+  fechaFin: string; // ISO date (yyyy-mm-dd)
+  canal: string;
+  montoPagado: number;
+  notas?: string;
   creadoEn: string;
 }

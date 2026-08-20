@@ -51,3 +51,8 @@ insert into inventario_items (villa_id, zona, nombre, categoria, cantidad, condi
   ('villa-2', 'Sala', 'TV sala', 'Electrónica', 1, 'bueno'),
   ('villa-2', 'Cocina', 'Refrigerador', 'Electrodomésticos', 1, 'regular'),
   ('villa-2', 'Terraza', 'Sillas de exterior', 'Muebles', 6, 'danado');
+
+-- Reservas de ejemplo (rentas ya cobradas, no calendario a futuro).
+insert into reservas (villa_id, huesped, fecha_inicio, fecha_fin, canal, monto_pagado) values
+  ('villa-2', 'Familia Torres', '2026-07-10', '2026-07-15', 'Airbnb', 18500),
+  ('villa-2', 'J. Ramírez', '2026-08-01', '2026-08-04', 'Booking.com', 9200);

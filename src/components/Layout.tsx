@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Package, ClipboardCheck, Boxes, LogOut, UserPlus } from "lucide-react";
+import { Home, Package, ClipboardCheck, Boxes, CalendarDays, LogOut, UserPlus } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { esAdmin, LABEL_ROL } from "../lib/permissions";
@@ -30,8 +30,8 @@ export default function Layout() {
             {esAdmin(profile) && (
               <NavLink
                 to="/admin/duenos/nuevo"
-                title="Crear cuenta de dueño"
-                aria-label="Crear cuenta de dueño"
+                title="Crear usuario"
+                aria-label="Crear usuario"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -108,6 +108,10 @@ export default function Layout() {
         <NavLink to="/inventario" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
           <Boxes size={20} strokeWidth={2} />
           Inventario
+        </NavLink>
+        <NavLink to="/reservas" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+          <CalendarDays size={20} strokeWidth={2} />
+          Reservas
         </NavLink>
       </nav>
     </div>

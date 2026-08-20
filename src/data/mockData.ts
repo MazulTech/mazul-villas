@@ -1,4 +1,4 @@
-import type { ChecklistTarea, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Villa } from "../types";
+import type { ChecklistTarea, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Reserva, Villa } from "../types";
 import { calcularUrgencia } from "../lib/urgencia";
 
 // Coincide con supabase/seed.sql: mismos ids, numero y apodo (o null si la
@@ -173,6 +173,29 @@ export const inventario: InventarioItem[] = [
     categoria: "Muebles",
     cantidad: 6,
     condicion: "danado",
+    creadoEn: new Date().toISOString(),
+  },
+];
+
+export const reservas: Reserva[] = [
+  {
+    id: "res1",
+    villaId: "villa-2",
+    huesped: "Familia Torres",
+    fechaInicio: "2026-07-10",
+    fechaFin: "2026-07-15",
+    canal: "Airbnb",
+    montoPagado: 18500,
+    creadoEn: new Date().toISOString(),
+  },
+  {
+    id: "res2",
+    villaId: "villa-2",
+    huesped: "J. Ramírez",
+    fechaInicio: "2026-08-01",
+    fechaFin: "2026-08-04",
+    canal: "Booking.com",
+    montoPagado: 9200,
     creadoEn: new Date().toISOString(),
   },
 ];

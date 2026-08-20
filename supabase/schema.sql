@@ -199,6 +199,22 @@ alter table inventario_items add column if not exists categoria text;
 -- enciende"). Sin esto, "Danado" no decia que habia pasado realmente.
 alter table inventario_items add column if not exists descripcion_condicion text;
 
+-- Bitacora de rentas ya cobradas (no un calendario de reservaciones futuras):
+-- quien se hospedo, fechas, cuanto se pago y por que canal llego. Lo captura
+-- administracion; el dueno de la villa lo consulta como reporte de ingresos.
+create table if not exists reservas (
+  id uuid primary key default gen_random_uuid(),
+  villa_id text references villas(id) not null,
+  huesped text,
+  fecha_inicio date not null,
+  fecha_fin date not null,
+  canal text not null,
+  monto_pagado numeric not null default 0,
+  notas text,
+  creado_por uuid references auth.users(id) default auth.uid(),
+  creado_en timestamptz not null default now()
+);
+
 -- Perfiles con rol, para las 4 audiencias del negocio: administracion
 -- (incluye supervisor/gerencia), mantenimiento, housekeeping (limpieza) y
 -- dueno. villas_asignadas solo aplica a duenos: son las unicas villas que
@@ -207,8 +223,16 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id),
   nombre text,
   rol text not null check (rol in ('supervisor', 'mantenimiento', 'administracion', 'housekeeping', 'dueno')),
-  villas_asignadas text[] default '{}'
+  villas_asignadas text[] default '{}',
+  -- Excepcion por persona (no por rol): un miembro de limpieza en
+  -- particular al que se le dio acceso de agregar inventario nuevo, ademas
+  -- de solo reportar el estado de items existentes (ver
+  -- puedeGestionarInventario en permissions.ts). false para el resto.
+  inventario_extra boolean not null default false
 );
+-- Backstop por si la tabla ya existia de una version anterior sin esta
+-- columna (create table if not exists no la habria agregado).
+alter table profiles add column if not exists inventario_extra boolean not null default false;
 
 alter table villas enable row level security;
 alter table checklist_items enable row level security;
@@ -218,6 +242,7 @@ alter table repartos_insumos enable row level security;
 alter table mejoras enable row level security;
 alter table incidencias enable row level security;
 alter table inventario_items enable row level security;
+alter table reservas enable row level security;
 alter table profiles enable row level security;
 
 -- ============================================================
@@ -242,6 +267,19 @@ stable
 set search_path = public
 as $$
   select coalesce(villas_asignadas, '{}') from public.profiles where id = auth.uid();
+$$;
+
+-- Excepcion por persona (no por rol) para agregar inventario nuevo — ver
+-- columna inventario_extra en profiles y puedeGestionarInventario en
+-- permissions.ts.
+create or replace function public.tiene_inventario_extra()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce((select inventario_extra from public.profiles where id = auth.uid()), false);
 $$;
 
 create or replace function public.es_admin()
@@ -375,17 +413,35 @@ create policy "inventario_select" on inventario_items for select using (public.v
 drop policy if exists "inventario_write" on inventario_items;
 drop policy if exists "inventario_insert" on inventario_items;
 create policy "inventario_insert" on inventario_items for insert
-  with check (public.es_admin() or public.mi_rol() = 'mantenimiento');
+  with check (
+    public.es_admin()
+    or public.mi_rol() = 'mantenimiento'
+    or (public.mi_rol() = 'housekeeping' and public.tiene_inventario_extra())
+  );
+-- Limpieza tambien puede actualizar (para marcar Regular/Danado y su
+-- descripcion desde la app); la app solo les deja tocar esos dos campos,
+-- el resto del formulario se los muestra de solo lectura (ver
+-- puedeReportarCondicionInventario en permissions.ts).
 drop policy if exists "inventario_update" on inventario_items;
 create policy "inventario_update" on inventario_items for update
-  using (public.es_admin())
-  with check (public.es_admin());
+  using (public.es_admin() or public.mi_rol() = 'housekeeping')
+  with check (public.es_admin() or public.mi_rol() = 'housekeeping');
 -- Borrar (quitar del inventario por completo, ya sea por error de captura o
 -- porque el item se rompio/desecho) es exclusivo de administracion/
 -- supervisor, igual que corregirlo (ver puedeBorrarInventario en
 -- permissions.ts).
 drop policy if exists "inventario_delete" on inventario_items;
 create policy "inventario_delete" on inventario_items for delete using (public.es_admin());
+
+-- reservas: se ven segun la villa (el dueno solo las suyas); registrarlas,
+-- corregirlas o borrarlas es exclusivo de administracion/supervision (ver
+-- puedeGestionarReservas en permissions.ts).
+drop policy if exists "reservas_select" on reservas;
+create policy "reservas_select" on reservas for select using (public.villa_visible(villa_id));
+drop policy if exists "reservas_admin_write" on reservas;
+create policy "reservas_admin_write" on reservas for all
+  using (public.es_admin())
+  with check (public.es_admin());
 
 -- ============================================================
 -- Trigger: aplica a nivel de base de datos las dos reglas clave del flujo

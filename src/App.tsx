@@ -18,6 +18,9 @@ import InventarioVilla from "./pages/InventarioVilla";
 import NuevoItemInventario from "./pages/NuevoItemInventario";
 import EditarItemInventario from "./pages/EditarItemInventario";
 import VillaPerfil from "./pages/VillaPerfil";
+import Reservas from "./pages/Reservas";
+import ReservasVilla from "./pages/ReservasVilla";
+import NuevaReserva from "./pages/NuevaReserva";
 import NuevoDueno from "./pages/NuevoDueno";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -61,6 +64,9 @@ function App() {
           <Route path="/inventario/villa/:villaId" element={<InventarioVilla />} />
           <Route path="/inventario/villa/:villaId/nuevo" element={<NuevoItemInventario />} />
           <Route path="/inventario/:id/editar" element={<EditarItemInventario />} />
+          <Route path="/reservas" element={<Reservas />} />
+          <Route path="/reservas/villa/:villaId" element={<ReservasVilla />} />
+          <Route path="/reservas/villa/:villaId/nueva" element={<NuevaReserva />} />
           <Route path="/admin/duenos/nuevo" element={<NuevoDueno />} />
         </Route>
       </Routes>

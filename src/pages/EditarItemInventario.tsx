@@ -15,21 +15,28 @@ import { etiquetaVilla } from "../lib/villas";
 import { OTRA_ZONA, ZONAS } from "../data/zonas";
 import { CATEGORIAS_INVENTARIO, OTRA_CATEGORIA_INVENTARIO } from "../data/categoriasInventario";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeBorrarInventario, puedeEditarInventario } from "../lib/permissions";
+import { puedeBorrarInventario, puedeEditarInventario, puedeReportarCondicionInventario } from "../lib/permissions";
 import Cargando from "../components/Cargando";
 
 const CONDICIONES: Condicion[] = ["bueno", "regular", "danado"];
 
 // Corregir un item ya registrado (error de captura: nombre, zona, cantidad,
-// condición o foto). Solo administración/supervisión — ver
+// categoría o foto) es exclusivo de administración/supervisión — ver
 // puedeEditarInventario en permissions.ts. No se puede cambiar de villa
-// aquí; si el item quedó en la villa equivocada, hay que borrarlo desde
-// Supabase y volver a capturarlo en la villa correcta.
+// aquí; si el item quedó en la villa equivocada, hay que borrarlo y volver
+// a capturarlo en la villa correcta.
+//
+// Limpieza también entra a esta pantalla, pero solo para reportar el
+// estado: ve el resto de los datos de solo lectura y únicamente puede
+// tocar Condición y la descripción de qué tiene (ver
+// puedeReportarCondicionInventario). Es quien más tiempo pasa en las
+// villas y detecta las roturas primero.
 export default function EditarItemInventario() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const autorizado = puedeEditarInventario(profile);
+  const edicionCompleta = puedeEditarInventario(profile);
+  const autorizado = edicionCompleta || puedeReportarCondicionInventario(profile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [item, setItem] = useState<InventarioItem | null>(null);
@@ -179,90 +186,115 @@ export default function EditarItemInventario() {
 
   return (
     <div>
-      <h1 className="page-title">Editar item de inventario</h1>
-      <p className="page-sub">{villa ? etiquetaVilla(villa) : "Villa"} · corrige lo que esté mal capturado</p>
+      <h1 className="page-title">{edicionCompleta ? "Editar item de inventario" : "Reportar estado del item"}</h1>
+      <p className="page-sub">
+        {villa ? etiquetaVilla(villa) : "Villa"} ·{" "}
+        {edicionCompleta ? "corrige lo que esté mal capturado" : "marca cómo está y qué tiene"}
+      </p>
 
-      <div
-        className="card card-dashed"
-        style={{ marginBottom: 10, padding: 16, cursor: "pointer", textAlign: "center" }}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        {previewUrl ? (
-          <>
-            <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
-            {subiendoFoto && (
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>Subiendo foto...</p>
-            )}
-            {!subiendoFoto && fotoUrl && (
-              <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
-            )}
-          </>
-        ) : (
-          "Toca para tomar una foto nueva o elegir una de tu galería"
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="input-foto-oculto"
-          onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
-        />
-      </div>
-      {errorFoto && (
+      {edicionCompleta ? (
+        <div
+          className="card card-dashed"
+          style={{ marginBottom: 10, padding: 16, cursor: "pointer", textAlign: "center" }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {previewUrl ? (
+            <>
+              <img src={previewUrl} alt="Vista previa" style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8 }} />
+              {subiendoFoto && (
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "6px 0 0" }}>Subiendo foto...</p>
+              )}
+              {!subiendoFoto && fotoUrl && (
+                <p style={{ fontSize: 11, color: "var(--ok)", margin: "6px 0 0" }}>✓ Foto guardada</p>
+              )}
+            </>
+          ) : (
+            "Toca para tomar una foto nueva o elegir una de tu galería"
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="input-foto-oculto"
+            onChange={(e) => onFotoSeleccionada(e.target.files?.[0] ?? null)}
+          />
+        </div>
+      ) : (
+        previewUrl && (
+          <img
+            src={previewUrl}
+            alt={nombre}
+            style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, marginBottom: 10 }}
+          />
+        )
+      )}
+      {edicionCompleta && errorFoto && (
         <p style={{ fontSize: 11, color: "var(--danger)", margin: "-6px 0 10px" }}>
           {errorFoto} Toca la foto para intentar de nuevo.
         </p>
       )}
 
-      <div style={{ marginBottom: 10 }}>
-        <label className="field-label">Zona</label>
-        <select value={zonaSeleccionada} onChange={(e) => setZonaSeleccionada(e.target.value)}>
-          {ZONAS.map((z) => (
-            <option key={z} value={z}>
-              {z}
-            </option>
-          ))}
-        </select>
-        {zonaSeleccionada === OTRA_ZONA && (
-          <input
-            style={{ marginTop: 6 }}
-            value={zonaOtra}
-            onChange={(e) => setZonaOtra(e.target.value)}
-            placeholder="Especifica la zona"
-          />
-        )}
-      </div>
+      {edicionCompleta ? (
+        <>
+          <div style={{ marginBottom: 10 }}>
+            <label className="field-label">Zona</label>
+            <select value={zonaSeleccionada} onChange={(e) => setZonaSeleccionada(e.target.value)}>
+              {ZONAS.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+            {zonaSeleccionada === OTRA_ZONA && (
+              <input
+                style={{ marginTop: 6 }}
+                value={zonaOtra}
+                onChange={(e) => setZonaOtra(e.target.value)}
+                placeholder="Especifica la zona"
+              />
+            )}
+          </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <label className="field-label">Item</label>
-        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="TV sala, refrigerador, sillas de exterior..." />
-      </div>
+          <div style={{ marginBottom: 10 }}>
+            <label className="field-label">Item</label>
+            <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="TV sala, refrigerador, sillas de exterior..." />
+          </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <label className="field-label">Categoría</label>
-        <select value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(e.target.value)}>
-          {CATEGORIAS_INVENTARIO.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        {categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO && (
-          <input
-            style={{ marginTop: 6 }}
-            value={categoriaOtra}
-            onChange={(e) => setCategoriaOtra(e.target.value)}
-            placeholder="Especifica la categoría"
-          />
-        )}
-      </div>
+          <div style={{ marginBottom: 10 }}>
+            <label className="field-label">Categoría</label>
+            <select value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(e.target.value)}>
+              {CATEGORIAS_INVENTARIO.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {categoriaSeleccionada === OTRA_CATEGORIA_INVENTARIO && (
+              <input
+                style={{ marginTop: 6 }}
+                value={categoriaOtra}
+                onChange={(e) => setCategoriaOtra(e.target.value)}
+                placeholder="Especifica la categoría"
+              />
+            )}
+          </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1 }}>
-          <label className="field-label">Cantidad</label>
-          <input type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+          <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1 }}>
+              <label className="field-label">Cantidad</label>
+              <input type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{nombre}</div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            {categoria ? `${categoria} · ` : ""}
+            {zona} · Cantidad: {cantidad}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ marginBottom: 14 }}>
         <label className="field-label">Condición</label>
@@ -301,7 +333,7 @@ export default function EditarItemInventario() {
       )}
 
       <button className="btn btn-primary-dark" disabled={!puedeGuardar || guardando} onClick={guardar}>
-        {guardando ? "Guardando..." : "Guardar corrección"}
+        {guardando ? "Guardando..." : edicionCompleta ? "Guardar corrección" : "Guardar estado"}
       </button>
 
       {puedeBorrar && (

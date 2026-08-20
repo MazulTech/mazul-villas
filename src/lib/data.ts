@@ -6,8 +6,9 @@ import {
   almacenGeneral as mockAlmacen,
   mejoras as mockMejoras,
   inventario as mockInventario,
+  reservas as mockReservas,
 } from "../data/mockData";
-import type { ChecklistTarea, Condicion, EstadoMejora, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Profile, Resolucion, TipoMantenimiento, Villa } from "../types";
+import type { ChecklistTarea, Condicion, EstadoMejora, InsumoCatalogo, InsumoStock, InventarioItem, Mejora, Profile, Reserva, Resolucion, TipoMantenimiento, Villa } from "../types";
 import { calcularUrgencia } from "./urgencia";
 import { villasVisibles } from "./permissions";
 
@@ -571,5 +572,73 @@ export async function eliminarInventarioItem(id: string): Promise<void> {
     return;
   }
   const { error } = await supabase.from("inventario_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================================
+// Reservas: bitácora de rentas ya cobradas por villa (no un calendario de
+// reservaciones futuras). Registrarlas/corregirlas/borrarlas es exclusivo
+// de administración — ver puedeGestionarReservas en permissions.ts y la
+// RLS "reservas_admin_write" en supabase/schema.sql.
+// ============================================================
+
+export async function listarReservas(villaId: string): Promise<Reserva[]> {
+  if (!supabaseConfigured || !supabase) {
+    return mockReservas.filter((r) => r.villaId === villaId);
+  }
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("id, villa_id, huesped, fecha_inicio, fecha_fin, canal, monto_pagado, notas, creado_en")
+    .eq("villa_id", villaId)
+    .order("fecha_inicio", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    villaId: d.villa_id,
+    huesped: d.huesped ?? undefined,
+    fechaInicio: d.fecha_inicio,
+    fechaFin: d.fecha_fin,
+    canal: d.canal,
+    montoPagado: d.monto_pagado,
+    notas: d.notas ?? undefined,
+    creadoEn: d.creado_en,
+  }));
+}
+
+export interface NuevaReservaInput {
+  villaId: string;
+  huesped?: string;
+  fechaInicio: string;
+  fechaFin: string;
+  canal: string;
+  montoPagado: number;
+  notas?: string;
+}
+
+export async function crearReserva(input: NuevaReservaInput): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Reserva creada (demo, no persistida):", input);
+    return;
+  }
+  const { error } = await supabase.from("reservas").insert({
+    villa_id: input.villaId,
+    huesped: input.huesped || null,
+    fecha_inicio: input.fechaInicio,
+    fecha_fin: input.fechaFin,
+    canal: input.canal,
+    monto_pagado: input.montoPagado,
+    notas: input.notas || null,
+  });
+  if (error) throw error;
+}
+
+// Corrige/borra una reserva ya capturada (error de captura). Solo
+// administración/supervisión, ver puedeGestionarReservas.
+export async function eliminarReserva(id: string): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Reserva borrada (demo, no persistida):", { id });
+    return;
+  }
+  const { error } = await supabase.from("reservas").delete().eq("id", id);
   if (error) throw error;
 }

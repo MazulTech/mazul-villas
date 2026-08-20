@@ -17,6 +17,7 @@ const PERFIL_DEMO: Profile = {
   nombre: "Modo demo",
   rol: "administracion",
   villasAsignadas: [],
+  inventarioExtra: false,
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) return;
       const { data, error: err } = await supabase
         .from("profiles")
-        .select("id, nombre, rol, villas_asignadas")
+        .select("id, nombre, rol, villas_asignadas, inventario_extra")
         .eq("id", userId)
         .maybeSingle();
       if (err) {
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nombre: data.nombre,
         rol: data.rol,
         villasAsignadas: data.villas_asignadas ?? [],
+        inventarioExtra: data.inventario_extra ?? false,
       });
     };
 

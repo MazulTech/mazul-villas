@@ -5,7 +5,13 @@ import type { InventarioItem } from "../types";
 import { CLASE_PILL_CONDICION, LABEL_CONDICION } from "../lib/inventario";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeCrearCaso, puedeEditarInventario, puedeGestionarInventario, puedeVerVilla } from "../lib/permissions";
+import {
+  puedeCrearCaso,
+  puedeEditarInventario,
+  puedeGestionarInventario,
+  puedeReportarCondicionInventario,
+  puedeVerVilla,
+} from "../lib/permissions";
 import { mensajeError } from "../lib/errores";
 import { conCache } from "../lib/offlineDb";
 import Cargando from "../components/Cargando";
@@ -26,6 +32,7 @@ export default function InventarioVilla() {
   const gestionar = puedeGestionarInventario(profile);
   const reportar = puedeCrearCaso(profile);
   const editar = puedeEditarInventario(profile);
+  const reportarCondicion = puedeReportarCondicionInventario(profile);
   const [villa, setVilla] = useState<VillaBasica | null>(null);
   const [items, setItems] = useState<InventarioItem[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -198,13 +205,13 @@ export default function InventarioVilla() {
                     Reportar como mejora
                   </button>
                 )}
-                {editar && (
+                {(editar || reportarCondicion) && (
                   <Link
                     to={`/inventario/${it.id}/editar`}
                     className="btn btn-secondary"
                     style={{ fontSize: 12, padding: "6px 10px", textDecoration: "none", textAlign: "center", flex: reportar && it.condicion !== "bueno" ? "0 0 auto" : 1 }}
                   >
-                    Editar
+                    {editar ? "Editar" : "Reportar estado"}
                   </Link>
                 )}
               </div>

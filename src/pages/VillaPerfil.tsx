@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { listarMejoras, listarInventario, listarVillasConEstado } from "../lib/data";
-import type { Mejora, InventarioItem, Villa, EstadoMejora } from "../types";
+import { listarMejoras, listarInventario, listarReservas, listarVillasConEstado } from "../lib/data";
+import type { Mejora, InventarioItem, Reserva, Villa, EstadoMejora } from "../types";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { puedeVerVilla } from "../lib/permissions";
@@ -31,6 +31,7 @@ export default function VillaPerfil() {
   const [villa, setVilla] = useState<Villa | null>(null);
   const [mejoras, setMejoras] = useState<Mejora[]>([]);
   const [inventario, setInventario] = useState<InventarioItem[]>([]);
+  const [reservas, setReservas] = useState<Reserva[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,12 +42,14 @@ export default function VillaPerfil() {
       conCache(`villas-estado:${profile?.id ?? "anon"}`, () => listarVillasConEstado(profile)),
       conCache(`mejoras:${villaId}:${profile?.id ?? "anon"}`, () => listarMejoras(villaId, profile)),
       conCache(`inventario:${villaId}`, () => listarInventario(villaId)),
+      conCache(`reservas:${villaId}`, () => listarReservas(villaId)),
     ])
-      .then(([villasRes, mejorasRes, inventarioRes]) => {
+      .then(([villasRes, mejorasRes, inventarioRes, reservasRes]) => {
         if (!activo) return;
         setVilla(villasRes.datos.find((v) => v.id === villaId) ?? null);
         setMejoras(mejorasRes.datos);
         setInventario(inventarioRes.datos);
+        setReservas(reservasRes.datos);
       })
       .catch((e) => activo && setError(mensajeError(e, "No se pudo cargar el perfil de la villa.")))
       .finally(() => activo && setCargando(false));
@@ -74,6 +77,11 @@ export default function VillaPerfil() {
     const activas = porEstado.pendiente + porEstado.en_proceso + porEstado.esperando_aprobacion + porEstado.rechazada;
     return { total: mejoras.length, porEstado, activas, aprobadas: porEstado.aprobada };
   }, [mejoras]);
+
+  const resumenReservas = useMemo(() => {
+    const total = reservas.reduce((suma, r) => suma + r.montoPagado, 0);
+    return { total, cantidad: reservas.length };
+  }, [reservas]);
 
   const gastoCorrectivoPagado = useMemo(() => {
     return mejoras
@@ -124,7 +132,28 @@ export default function VillaPerfil() {
         Ver checklist de turnover →
       </Link>
 
-      <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "18px 0 8px", fontWeight: 700 }}>
+      <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "18px 0 8px", fontWeight: 700 }}>RENTAS</p>
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="num">{resumenReservas.cantidad}</div>
+          <div className="lbl">reservas</div>
+        </div>
+        <div className="stat-card">
+          <div className="num" style={{ fontSize: 16 }}>
+            ${resumenReservas.total.toLocaleString("es-MX")}
+          </div>
+          <div className="lbl">ingresos totales</div>
+        </div>
+      </div>
+      <Link
+        to={`/reservas/villa/${villaId}`}
+        className="btn btn-secondary"
+        style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 18 }}
+      >
+        Ver reservas e ingresos
+      </Link>
+
+      <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px", fontWeight: 700 }}>
         INVENTARIO
       </p>
       <div className="stat-grid">
