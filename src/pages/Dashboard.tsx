@@ -1,11 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Villa } from "../types";
-import { listarVillasConEstado } from "../lib/data";
+import { listarVillasConEstado, listarProximosMovimientos, type ProximoMovimiento } from "../lib/data";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
 import { esDueno } from "../lib/permissions";
 import Cargando from "../components/Cargando";
+
+// Diferencia en días de calendario entre hoy y una fecha yyyy-mm-dd (parseo
+// con hora fija al mediodía para no correrse un día por la zona horaria).
+function diasDesdeHoy(iso: string): number {
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const a = new Date(`${hoyStr}T12:00:00`).getTime();
+  const b = new Date(`${iso}T12:00:00`).getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function etiquetaCuando(iso: string): string {
+  const dias = diasDesdeHoy(iso);
+  if (dias === 0) return "Hoy";
+  if (dias === 1) return "Mañana";
+  if (dias === -1) return "Ayer";
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+}
 
 const ESTADO_PILL: Record<string, string> = {
   lista: "pill pill-ok",
@@ -23,13 +40,18 @@ export default function Dashboard() {
   const { profile } = useAuth();
   const dueno = esDueno(profile);
   const [villas, setVillas] = useState<Villa[]>([]);
+  const [movimientos, setMovimientos] = useState<ProximoMovimiento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
-    listarVillasConEstado(profile)
-      .then((v) => activo && setVillas(v))
+    Promise.all([listarVillasConEstado(profile), listarProximosMovimientos().catch(() => [])])
+      .then(([v, m]) => {
+        if (!activo) return;
+        setVillas(v);
+        setMovimientos(m);
+      })
       .catch((e: Error) => activo && setError(e.message))
       .finally(() => activo && setCargando(false));
     return () => {
@@ -72,6 +94,34 @@ export default function Dashboard() {
               <div className="lbl">incidencias</div>
             </div>
           </div>
+
+          {movimientos.length > 0 && (
+            <>
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px" }}>
+                PRÓXIMAS ENTRADAS Y SALIDAS
+              </p>
+              {movimientos.map((m, i) => {
+                const v = villas.find((x) => x.id === m.villaId);
+                return (
+                  <div
+                    key={`${m.villaId}-${m.tipo}-${m.fecha}-${i}`}
+                    className="card"
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{v ? etiquetaVilla(v) : m.villaId}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                        {m.tipo === "entrada" ? "Entra huésped — dejar lista antes" : "Sale huésped — limpiar después"}
+                      </div>
+                    </div>
+                    <span className={m.tipo === "entrada" ? "pill pill-warn" : "pill pill-danger"}>
+                      {etiquetaCuando(m.fecha)}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
 
           <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px" }}>VILLAS</p>
           {villas.map((v) => (

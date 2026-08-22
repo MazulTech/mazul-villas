@@ -116,6 +116,14 @@ export function puedeGestionarReservas(profile: Profile | null): boolean {
   return esAdmin(profile);
 }
 
+// Limpieza puede ver la bitácora de reservas (para saber cuándo entra y
+// sale cada huésped y así organizarse), pero no debe ver montos, canal,
+// nombre del huésped ni notas — eso es información financiera exclusiva de
+// administración/supervisión y del dueño de la villa.
+export function puedeVerFinanzasReservas(profile: Profile | null): boolean {
+  return profile?.rol !== "housekeeping";
+}
+
 // Borrar una tarea de mejora es exclusivo de administracion/supervisor
 // (por ejemplo, si se creo por error o esta duplicada).
 export function puedeBorrarMejora(profile: Profile | null): boolean {

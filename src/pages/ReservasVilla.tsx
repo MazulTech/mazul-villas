@@ -4,7 +4,7 @@ import { eliminarReserva, listarReservas, listarVillas, type VillaBasica } from 
 import type { Reserva } from "../types";
 import { etiquetaVilla } from "../lib/villas";
 import { useAuth } from "../contexts/AuthContext";
-import { puedeGestionarReservas, puedeVerVilla } from "../lib/permissions";
+import { puedeGestionarReservas, puedeVerFinanzasReservas, puedeVerVilla } from "../lib/permissions";
 import { mensajeError } from "../lib/errores";
 import { conCache } from "../lib/offlineDb";
 import Cargando from "../components/Cargando";
@@ -26,6 +26,7 @@ export default function ReservasVilla() {
   const { villaId = "" } = useParams();
   const { profile } = useAuth();
   const gestionar = puedeGestionarReservas(profile);
+  const verFinanzas = puedeVerFinanzasReservas(profile);
   const [villa, setVilla] = useState<VillaBasica | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -83,17 +84,19 @@ export default function ReservasVilla() {
       </Link>
 
       <h1 className="page-title">{villa ? etiquetaVilla(villa) : "Reservas"}</h1>
-      <p className="page-sub">Rentas cobradas e ingresos</p>
+      <p className="page-sub">{verFinanzas ? "Rentas cobradas e ingresos" : "Fechas de entrada y salida de huéspedes"}</p>
 
       <div className="stat-grid" style={{ marginBottom: 14 }}>
         <div className="stat-card">
           <div className="num">{resumen.cantidad}</div>
           <div className="lbl">reservas</div>
         </div>
-        <div className="stat-card">
-          <div className="num" style={{ fontSize: 18 }}>{formatoMoneda(resumen.total)}</div>
-          <div className="lbl">ingresos totales</div>
-        </div>
+        {verFinanzas && (
+          <div className="stat-card">
+            <div className="num" style={{ fontSize: 18 }}>{formatoMoneda(resumen.total)}</div>
+            <div className="lbl">ingresos totales</div>
+          </div>
+        )}
       </div>
 
       {gestionar && (
@@ -132,13 +135,17 @@ export default function ReservasVilla() {
             <div style={{ fontSize: 13, fontWeight: 700 }}>
               {formatoFecha(r.fechaInicio)} → {formatoFecha(r.fechaFin)}
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ok)" }}>{formatoMoneda(r.montoPagado)}</div>
+            {verFinanzas && (
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ok)" }}>{formatoMoneda(r.montoPagado)}</div>
+            )}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-            {r.canal}
-            {r.huesped ? ` · ${r.huesped}` : ""}
-          </div>
-          {r.notas && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{r.notas}</div>}
+          {verFinanzas && (
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              {r.canal}
+              {r.huesped ? ` · ${r.huesped}` : ""}
+            </div>
+          )}
+          {verFinanzas && r.notas && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{r.notas}</div>}
           {gestionar && (
             <button
               type="button"

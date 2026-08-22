@@ -643,6 +643,47 @@ export async function eliminarReserva(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// Recordatorio de limpieza: villas con entrada o salida de huésped en los
+// próximos días (desde ayer hasta pasado mañana), para que limpieza sepa
+// qué villa dejar lista antes de que llegue el huésped y cuál limpiar
+// después de que se va. Solo fechas — sin montos ni datos del huésped, así
+// que lo puede ver cualquier rol (RLS "reservas_select" ya filtra por villa
+// visible, así que a un dueño solo le salen sus propias villas). Ver
+// Dashboard.tsx.
+export interface ProximoMovimiento {
+  villaId: string;
+  tipo: "entrada" | "salida";
+  fecha: string; // yyyy-mm-dd
+}
+
+export async function listarProximosMovimientos(): Promise<ProximoMovimiento[]> {
+  if (!supabaseConfigured || !supabase) return [];
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const hoy = new Date();
+  const desde = new Date(hoy);
+  desde.setDate(desde.getDate() - 1);
+  const hasta = new Date(hoy);
+  hasta.setDate(hasta.getDate() + 2);
+  const desdeStr = fmt(desde);
+  const hastaStr = fmt(hasta);
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("villa_id, fecha_inicio, fecha_fin")
+    .gte("fecha_fin", desdeStr)
+    .lte("fecha_inicio", hastaStr);
+  if (error) throw error;
+  const movimientos: ProximoMovimiento[] = [];
+  for (const r of data ?? []) {
+    if (r.fecha_inicio >= desdeStr && r.fecha_inicio <= hastaStr) {
+      movimientos.push({ villaId: r.villa_id, tipo: "entrada", fecha: r.fecha_inicio });
+    }
+    if (r.fecha_fin >= desdeStr && r.fecha_fin <= hastaStr) {
+      movimientos.push({ villaId: r.villa_id, tipo: "salida", fecha: r.fecha_fin });
+    }
+  }
+  return movimientos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
 // ============================================================
 // Usuarios: solo para la pantalla admin "Usuarios y permisos" (ver
 // Usuarios.tsx). La RLS "profiles_select" ya deja a administracion/
