@@ -722,6 +722,11 @@ export default function MejoraDetalle() {
               {errorFoto} Toca la foto para intentar de nuevo.
             </p>
           )}
+          {error && (
+            <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 8 }}>
+              <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
+            </div>
+          )}
           <button
             className="btn btn-primary-dark"
             disabled={(!fotoDespuesUrl && !fotoArchivoOffline) || subiendoFoto || procesando}
