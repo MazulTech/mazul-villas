@@ -339,6 +339,31 @@ export default function MejoraDetalle() {
     !mejora.cotizacionPagada;
   const trabajoBloqueadoPorCotizacion = requiereCompra && !(mejora.cotizacionAprobada && mejora.cotizacionPagada);
 
+  // Resumen de una línea de qué falta y de quién depende, para que sea
+  // obvio de un vistazo en qué va la tarea sin tener que descifrar el
+  // resto de la pantalla (equipo/materiales/contratar tienen flujos
+  // distintos — ver el comentario junto a trabajoBloqueadoPorCotizacion).
+  const proximoPaso = (() => {
+    if (mejora.estado === "aprobada") return "Completada: el dueño ya aprobó el resultado.";
+    if (mejora.estado === "rechazada") return "El dueño rechazó el resultado. Revisa qué falta y vuelve a intentarlo.";
+    if (mejora.estado === "esperando_aprobacion") return "Esperando que el dueño apruebe el resultado.";
+    if (requiereCompra) {
+      if (!mejora.fotoCotizacionUrl && !mejora.proveedorOLink) {
+        return "Falta conseguir la cotización (proveedor y precio) y subirla.";
+      }
+      if (!mejora.cotizacionAprobada) {
+        return "Cotización subida: falta que administración la apruebe.";
+      }
+      if (!mejora.cotizacionPagada) {
+        return mejora.tipoMantenimiento === "preventivo"
+          ? "Cotización aprobada: falta que administración confirme el pago (fondos de Mazul)."
+          : "Cotización aprobada: falta que el dueño pague o mande el material.";
+      }
+      return "Ya se puede trabajar: falta subir la foto \"después\" y marcar como resuelta.";
+    }
+    return "Falta subir la foto \"después\" y marcar como resuelta.";
+  })();
+
   return (
     <div>
       <h1 className="page-title">{nombreVilla(mejora.villaId)}</h1>
@@ -357,6 +382,13 @@ export default function MejoraDetalle() {
             Reportada desde inventario
           </span>
         )}
+      </div>
+
+      <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
+        <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: "0 0 2px", fontWeight: 700, letterSpacing: 0.3 }}>
+          PRÓXIMO PASO
+        </p>
+        <p style={{ fontSize: 12, margin: 0 }}>{proximoPaso}</p>
       </div>
 
       {error && (
