@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) return;
       const { data, error: err } = await supabase
         .from("profiles")
-        .select("id, nombre, rol, villas_asignadas, inventario_extra")
+        .select("id, nombre, rol, villas_asignadas, inventario_extra, email")
         .eq("id", userId)
         .maybeSingle();
       if (err) {
@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         rol: data.rol,
         villasAsignadas: data.villas_asignadas ?? [],
         inventarioExtra: data.inventario_extra ?? false,
+        email: data.email ?? undefined,
       });
     };
 

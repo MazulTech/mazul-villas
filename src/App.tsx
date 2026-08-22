@@ -22,6 +22,7 @@ import Reservas from "./pages/Reservas";
 import ReservasVilla from "./pages/ReservasVilla";
 import NuevaReserva from "./pages/NuevaReserva";
 import NuevoDueno from "./pages/NuevoDueno";
+import Usuarios from "./pages/Usuarios";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { profile, cargando } = useAuth();
@@ -68,6 +69,7 @@ function App() {
           <Route path="/reservas/villa/:villaId" element={<ReservasVilla />} />
           <Route path="/reservas/villa/:villaId/nueva" element={<NuevaReserva />} />
           <Route path="/admin/duenos/nuevo" element={<NuevoDueno />} />
+          <Route path="/admin/usuarios" element={<Usuarios />} />
         </Route>
       </Routes>
     </AuthProvider>

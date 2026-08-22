@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Package, ClipboardCheck, Boxes, CalendarDays, LogOut, UserPlus } from "lucide-react";
+import { Home, Package, ClipboardCheck, Boxes, CalendarDays, LogOut, Users } from "lucide-react";
 import ErrorBoundary from "./ErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { esAdmin, LABEL_ROL } from "../lib/permissions";
@@ -29,9 +29,9 @@ export default function Layout() {
             </div>
             {esAdmin(profile) && (
               <NavLink
-                to="/admin/duenos/nuevo"
-                title="Crear usuario"
-                aria-label="Crear usuario"
+                to="/admin/usuarios"
+                title="Usuarios y permisos"
+                aria-label="Usuarios y permisos"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -45,7 +45,7 @@ export default function Layout() {
                   flexShrink: 0,
                 }}
               >
-                <UserPlus size={16} strokeWidth={2} />
+                <Users size={16} strokeWidth={2} />
               </NavLink>
             )}
             <button

@@ -228,11 +228,20 @@ create table if not exists profiles (
   -- particular al que se le dio acceso de agregar inventario nuevo, ademas
   -- de solo reportar el estado de items existentes (ver
   -- puedeGestionarInventario en permissions.ts). false para el resto.
-  inventario_extra boolean not null default false
+  inventario_extra boolean not null default false,
+  -- Copia del correo (vive de verdad en auth.users, que el cliente no puede
+  -- leer directo): se guarda aqui al crear la cuenta (ver NuevoDueno.tsx)
+  -- solo para poder mostrarlo en la pantalla de admin "Usuarios y permisos".
+  email text
 );
--- Backstop por si la tabla ya existia de una version anterior sin esta
--- columna (create table if not exists no la habria agregado).
+-- Backstop por si la tabla ya existia de una version anterior sin estas
+-- columnas (create table if not exists no las habria agregado).
 alter table profiles add column if not exists inventario_extra boolean not null default false;
+alter table profiles add column if not exists email text;
+-- Backfill de una sola vez: rellena el correo de cuentas creadas antes de
+-- que existiera esta columna, tomandolo de auth.users. No hace nada en
+-- perfiles que ya tengan correo guardado.
+update profiles p set email = u.email from auth.users u where p.id = u.id and p.email is null;
 
 alter table villas enable row level security;
 alter table checklist_items enable row level security;

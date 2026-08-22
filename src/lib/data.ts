@@ -642,3 +642,43 @@ export async function eliminarReserva(id: string): Promise<void> {
   const { error } = await supabase.from("reservas").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ============================================================
+// Usuarios: solo para la pantalla admin "Usuarios y permisos" (ver
+// Usuarios.tsx). La RLS "profiles_select" ya deja a administracion/
+// supervision ver todos los perfiles, no solo el propio.
+// ============================================================
+
+export async function listarUsuarios(): Promise<Profile[]> {
+  if (!supabaseConfigured || !supabase) {
+    return [
+      { id: "demo", nombre: "Modo demo", email: "demo@mazul.mx", rol: "administracion", villasAsignadas: [], inventarioExtra: false },
+    ];
+  }
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, nombre, rol, villas_asignadas, inventario_extra, email")
+    .order("rol", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    nombre: d.nombre,
+    email: d.email ?? undefined,
+    rol: d.rol,
+    villasAsignadas: d.villas_asignadas ?? [],
+    inventarioExtra: d.inventario_extra ?? false,
+  }));
+}
+
+// Prende/apaga la excepción por persona de agregar inventario nuevo (ver
+// inventarioExtra en types.ts). Solo administración/supervisión — la RLS
+// "profiles_admin_update" en schema.sql lo exige también del lado del
+// servidor.
+export async function actualizarInventarioExtra(id: string, valor: boolean): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Permiso extra de inventario actualizado (demo, no persistido):", { id, valor });
+    return;
+  }
+  const { error } = await supabase.from("profiles").update({ inventario_extra: valor }).eq("id", id);
+  if (error) throw error;
+}

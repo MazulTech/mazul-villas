@@ -101,6 +101,11 @@ export default function NuevaTarea() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [huboBorrador] = useState(!prefill && borradorInicial !== null);
+  // Si se recuperó un borrador pero no traía foto (se cerró la app antes de
+  // que la foto terminara de subirse, o estaba sin señal), el botón
+  // "Guardar tarea" se queda deshabilitado hasta retomar la foto — pero sin
+  // esto no era obvio por qué, y se sentía como que "no hacía nada".
+  const fotoPerdidaAlRecuperar = huboBorrador && !previewUrl;
   const puedeElegirTipo = puedeElegirTipoMantenimiento(profile);
 
   useEffect(() => {
@@ -300,7 +305,11 @@ export default function NuevaTarea() {
         <label className="field-label">Foto "antes" (obligatoria)</label>
         <div
           className="card card-dashed"
-          style={{ padding: 16, cursor: "pointer", textAlign: "center" }}
+          style={
+            fotoPerdidaAlRecuperar
+              ? { padding: 16, cursor: "pointer", textAlign: "center", borderColor: "var(--danger)" }
+              : { padding: 16, cursor: "pointer", textAlign: "center" }
+          }
           onClick={() => fileInputRef.current?.click()}
         >
           {previewUrl ? (
@@ -318,6 +327,11 @@ export default function NuevaTarea() {
                 </p>
               )}
             </>
+          ) : fotoPerdidaAlRecuperar ? (
+            <p style={{ fontSize: 12, color: "var(--danger)", fontWeight: 700, margin: 0 }}>
+              La foto no se pudo recuperar (se cerró la app antes de guardarla). Toca aquí para tomarla de nuevo — es
+              obligatoria para poder guardar.
+            </p>
           ) : (
             "Toca para tomar una foto nueva o elegir una de tu galería"
           )}

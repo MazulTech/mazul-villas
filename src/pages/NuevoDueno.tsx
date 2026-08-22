@@ -79,6 +79,7 @@ export default function NuevoDueno() {
         rol,
         villas_asignadas: esDueno ? villasSeleccionadas : [],
         inventario_extra: esLimpieza ? inventarioExtra : false,
+        email: email.trim(),
       });
       if (errPerfil) {
         throw new Error(

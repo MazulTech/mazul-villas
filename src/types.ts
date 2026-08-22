@@ -4,6 +4,10 @@ export type Rol = "supervisor" | "administracion" | "mantenimiento" | "housekeep
 export interface Profile {
   id: string;
   nombre: string | null;
+  // Copia del correo, solo para mostrarlo en la pantalla de admin
+  // "Usuarios y permisos" (el cliente no puede leer auth.users directo).
+  // No siempre está presente en cuentas creadas antes de este campo.
+  email?: string | null;
   rol: Rol;
   // Solo aplica a duenos: los ids de villa a las que tienen acceso.
   // Para el resto de roles se ignora (ven todas las villas).
