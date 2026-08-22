@@ -163,6 +163,17 @@ export default function NuevaTarea() {
     }
   };
 
+  // Salida de emergencia: si el formulario quedó en un estado raro (por
+  // ejemplo un borrador recuperado a medias que no se puede destrabar),
+  // esto borra el borrador guardado y recarga la página desde cero — más
+  // confiable que solo resetear el estado de React, porque toda la lógica
+  // de "recuperar borrador" se arma una sola vez al cargar la pantalla.
+  const empezarDeNuevo = () => {
+    if (!window.confirm("¿Borrar todo lo que llevas escrito en este formulario y empezar de nuevo?")) return;
+    borrarBorrador();
+    window.location.reload();
+  };
+
   // Sube la foto a Supabase apenas se toma/selecciona, en vez de esperar
   // hasta "Guardar tarea". Si la app se recarga justo después de volver
   // de la cámara (algo común en celulares), la foto ya quedó a salvo y
@@ -282,11 +293,26 @@ export default function NuevaTarea() {
 
       {huboBorrador && (
         <div className="card" style={{ background: "var(--warn-bg)", border: "none", marginBottom: 10 }}>
-          <p style={{ fontSize: 11, margin: 0, color: "var(--warn)" }}>
+          <p style={{ fontSize: 11, margin: "0 0 6px", color: "var(--warn)" }}>
             {fotoAntesUrl
               ? "Recuperamos lo que llevabas escrito, incluida la foto."
               : 'Recuperamos lo que llevabas escrito. Vuelve a tomar la foto "antes" para poder guardar.'}
           </p>
+          <button
+            type="button"
+            onClick={empezarDeNuevo}
+            style={{
+              fontSize: 11,
+              padding: 0,
+              border: "none",
+              background: "none",
+              color: "var(--warn)",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            O borrar todo y empezar de nuevo
+          </button>
         </div>
       )}
 
@@ -541,6 +567,20 @@ export default function NuevaTarea() {
 
       <button className="btn btn-primary-dark" disabled={!puedeGuardar || guardando} onClick={guardar}>
         {guardando ? "Guardando..." : "Guardar tarea"}
+      </button>
+
+      <button
+        type="button"
+        className="btn"
+        onClick={empezarDeNuevo}
+        style={{
+          marginTop: 10,
+          border: "1px solid var(--text-secondary)",
+          color: "var(--text-secondary)",
+          background: "transparent",
+        }}
+      >
+        Borrar formulario y empezar de nuevo
       </button>
     </div>
   );
