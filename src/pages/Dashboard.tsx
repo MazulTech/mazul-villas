@@ -97,9 +97,14 @@ export default function Dashboard() {
 
           {movimientos.length > 0 && (
             <>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px" }}>
-                PRÓXIMAS ENTRADAS Y SALIDAS
-              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 8px" }}>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+                  PRÓXIMAS ENTRADAS Y SALIDAS
+                </p>
+                <Link to="/reservas/calendario" style={{ fontSize: 11, color: "var(--terra-dark)", fontWeight: 700 }}>
+                  Ver calendario →
+                </Link>
+              </div>
               {movimientos.map((m, i) => {
                 const v = villas.find((x) => x.id === m.villaId);
                 return (

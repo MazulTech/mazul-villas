@@ -684,6 +684,35 @@ export async function listarProximosMovimientos(): Promise<ProximoMovimiento[]> 
   return movimientos.sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
+// Calendario de reservas (7 días hacia adelante por default): villa contra
+// fecha, para ver de un vistazo qué villas tienen huésped cada día. Solo
+// fechas, sin monto/canal/huésped — lo puede ver cualquier rol (ver
+// CalendarioReservas.tsx).
+export interface ReservaCalendario {
+  villaId: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
+
+export async function listarReservasCalendario(diasAdelante = 7): Promise<ReservaCalendario[]> {
+  if (!supabaseConfigured || !supabase) {
+    return mockReservas.map((r) => ({ villaId: r.villaId, fechaInicio: r.fechaInicio, fechaFin: r.fechaFin }));
+  }
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const hoy = new Date();
+  const hastaDate = new Date(hoy);
+  hastaDate.setDate(hastaDate.getDate() + diasAdelante - 1);
+  const hoyStr = fmt(hoy);
+  const hastaStr = fmt(hastaDate);
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("villa_id, fecha_inicio, fecha_fin")
+    .lte("fecha_inicio", hastaStr)
+    .gte("fecha_fin", hoyStr);
+  if (error) throw error;
+  return (data ?? []).map((d) => ({ villaId: d.villa_id, fechaInicio: d.fecha_inicio, fechaFin: d.fecha_fin }));
+}
+
 // ============================================================
 // Usuarios: solo para la pantalla admin "Usuarios y permisos" (ver
 // Usuarios.tsx). La RLS "profiles_select" ya deja a administracion/

@@ -33,6 +33,21 @@ export default function Reservas() {
       <h1 className="page-title">Reservas</h1>
       <p className="page-sub">Elige una villa para ver sus rentas e ingresos</p>
 
+      <Link
+        to="/reservas/calendario"
+        className="btn"
+        style={{
+          display: "block",
+          textAlign: "center",
+          textDecoration: "none",
+          marginBottom: 14,
+          border: "1px solid var(--terra-dark)",
+          color: "var(--terra-dark)",
+        }}
+      >
+        Ver calendario (próximos 7 días)
+      </Link>
+
       {error && (
         <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
           <p style={{ fontSize: 12, color: "var(--danger)", margin: 0, wordBreak: "break-word" }}>{error}</p>
