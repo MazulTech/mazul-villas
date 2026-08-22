@@ -224,7 +224,13 @@ export default function NuevaTarea() {
   const puedeGuardar = faltantes.length === 0;
 
   const guardar = async () => {
-    if (afectaSeguridadOperacion === null || afectaAmenidad === null) return;
+    // Ojo: si afectaSeguridadOperacion es true, la pregunta de amenidad ni
+    // se muestra (no hace falta contestarla) — afectaAmenidad se queda en
+    // null a propósito. Este chequeo tiene que ser el mismo que arma
+    // `faltantes` arriba, si no el botón se ve habilitado pero no hace
+    // nada al tocarlo (así se quedaba atorado antes de este fix).
+    if (afectaSeguridadOperacion === null) return;
+    if (afectaSeguridadOperacion === false && afectaAmenidad === null) return;
     if (!fotoAntesUrl && !fotoArchivoOffline) return;
     // Quien no es admin no elige preventivo/correctivo (lo decide
     // administración después); se guarda como correctivo por default.
