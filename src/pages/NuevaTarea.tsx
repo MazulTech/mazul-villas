@@ -236,6 +236,11 @@ export default function NuevaTarea() {
     // administración después); se guarda como correctivo por default.
     const tipoAGuardar = puedeElegirTipo ? tipoMantenimiento : "correctivo";
     if (tipoAGuardar === null) return;
+    // Si afectaSeguridadOperacion es true, la pregunta de amenidad no se
+    // contestó (no hacía falta) — se guarda como false, sin afectar la
+    // urgencia calculada (calcularUrgencia ya prioriza seguridad/operación
+    // sobre amenidad, ver lib/urgencia.ts).
+    const afectaAmenidadAGuardar = afectaSeguridadOperacion ? false : (afectaAmenidad as boolean);
     setGuardando(true);
     setError(null);
     try {
@@ -244,7 +249,7 @@ export default function NuevaTarea() {
         zona,
         descripcion,
         afectaSeguridadOperacion,
-        afectaAmenidad,
+        afectaAmenidad: afectaAmenidadAGuardar,
         tipoMantenimiento: tipoAGuardar,
         resolucion,
         materialNecesario: materialNecesario || undefined,
