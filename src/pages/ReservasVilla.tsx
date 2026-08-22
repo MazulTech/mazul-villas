@@ -147,23 +147,39 @@ export default function ReservasVilla() {
           )}
           {verFinanzas && r.notas && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{r.notas}</div>}
           {gestionar && (
-            <button
-              type="button"
-              className="btn"
-              disabled={borrandoId === r.id}
-              onClick={() => borrar(r.id)}
-              style={{
-                marginTop: 6,
-                alignSelf: "flex-start",
-                fontSize: 11,
-                padding: "4px 10px",
-                border: "1px solid var(--danger)",
-                color: "var(--danger)",
-                background: "transparent",
-              }}
-            >
-              {borrandoId === r.id ? "Borrando..." : "Borrar"}
-            </button>
+            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+              <Link
+                to={`/reservas/${r.id}/editar`}
+                className="btn"
+                style={{
+                  alignSelf: "flex-start",
+                  fontSize: 11,
+                  padding: "4px 10px",
+                  border: "1px solid var(--terra-dark)",
+                  color: "var(--terra-dark)",
+                  background: "transparent",
+                  textDecoration: "none",
+                }}
+              >
+                Editar
+              </Link>
+              <button
+                type="button"
+                className="btn"
+                disabled={borrandoId === r.id}
+                onClick={() => borrar(r.id)}
+                style={{
+                  alignSelf: "flex-start",
+                  fontSize: 11,
+                  padding: "4px 10px",
+                  border: "1px solid var(--danger)",
+                  color: "var(--danger)",
+                  background: "transparent",
+                }}
+              >
+                {borrandoId === r.id ? "Borrando..." : "Borrar"}
+              </button>
+            </div>
           )}
         </div>
       ))}

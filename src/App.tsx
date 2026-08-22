@@ -22,6 +22,7 @@ import Reservas from "./pages/Reservas";
 import ReservasVilla from "./pages/ReservasVilla";
 import CalendarioReservas from "./pages/CalendarioReservas";
 import NuevaReserva from "./pages/NuevaReserva";
+import EditarReserva from "./pages/EditarReserva";
 import NuevoDueno from "./pages/NuevoDueno";
 import Usuarios from "./pages/Usuarios";
 
@@ -70,6 +71,7 @@ function App() {
           <Route path="/reservas/calendario" element={<CalendarioReservas />} />
           <Route path="/reservas/villa/:villaId" element={<ReservasVilla />} />
           <Route path="/reservas/villa/:villaId/nueva" element={<NuevaReserva />} />
+          <Route path="/reservas/:id/editar" element={<EditarReserva />} />
           <Route path="/admin/duenos/nuevo" element={<NuevoDueno />} />
           <Route path="/admin/usuarios" element={<Usuarios />} />
         </Route>

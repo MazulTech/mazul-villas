@@ -99,20 +99,21 @@ export default function CalendarioReservas() {
 
       {!cargando && (
         <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 10, marginBottom: 10 }}>
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
             <thead>
               <tr>
                 <th
                   style={{
                     position: "sticky",
                     left: 0,
+                    zIndex: 2,
                     background: "var(--bg)",
                     padding: "6px 8px",
                     textAlign: "left",
                     fontSize: 10,
                     color: "var(--text-secondary)",
-                    minWidth: 92,
-                    borderBottom: "1px solid var(--border)",
+                    width: 92,
+                    border: "1px solid var(--border)",
                   }}
                 >
                   Villa
@@ -123,12 +124,13 @@ export default function CalendarioReservas() {
                     <th
                       key={iso}
                       style={{
-                        padding: "6px 3px",
+                        padding: "6px 2px",
                         textAlign: "center",
                         fontSize: 10,
-                        minWidth: 34,
+                        width: 38,
                         color: i === 0 ? "var(--terra-dark)" : "var(--text-secondary)",
-                        borderBottom: "1px solid var(--border)",
+                        background: i === 0 ? "rgba(184, 106, 74, 0.1)" : "transparent",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div style={{ textTransform: "capitalize" }}>{et.dia}</div>
@@ -147,12 +149,15 @@ export default function CalendarioReservas() {
                       style={{
                         position: "sticky",
                         left: 0,
+                        zIndex: 1,
                         background: "var(--bg)",
                         padding: "7px 8px",
                         fontWeight: 700,
                         fontSize: 11,
                         whiteSpace: "nowrap",
-                        borderBottom: "1px solid var(--border)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       {etiquetaVilla(v)}
@@ -166,10 +171,11 @@ export default function CalendarioReservas() {
                           key={iso}
                           title={r ? (esEntrada ? "Entrada" : esSalida ? "Salida" : "Ocupada") : "Libre"}
                           style={{
+                            height: 32,
                             textAlign: "center",
                             fontSize: 13,
                             fontWeight: 700,
-                            borderBottom: "1px solid var(--border)",
+                            border: "1px solid var(--border)",
                             background: r ? "rgba(184, 106, 74, 0.16)" : "transparent",
                           }}
                         >

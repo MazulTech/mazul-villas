@@ -632,7 +632,63 @@ export async function crearReserva(input: NuevaReservaInput): Promise<void> {
   if (error) throw error;
 }
 
-// Corrige/borra una reserva ya capturada (error de captura). Solo
+// Trae una sola reserva (para el formulario de edición). Solo
+// administración/supervisión llega a esta pantalla, ver puedeGestionarReservas.
+export async function obtenerReserva(id: string): Promise<Reserva | null> {
+  if (!supabaseConfigured || !supabase) {
+    return mockReservas.find((r) => r.id === id) ?? null;
+  }
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("id, villa_id, huesped, fecha_inicio, fecha_fin, canal, monto_pagado, notas, creado_en")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    villaId: data.villa_id,
+    huesped: data.huesped ?? undefined,
+    fechaInicio: data.fecha_inicio,
+    fechaFin: data.fecha_fin,
+    canal: data.canal,
+    montoPagado: data.monto_pagado,
+    notas: data.notas ?? undefined,
+    creadoEn: data.creado_en,
+  };
+}
+
+export interface ActualizarReservaInput {
+  huesped?: string;
+  fechaInicio: string;
+  fechaFin: string;
+  canal: string;
+  montoPagado: number;
+  notas?: string;
+}
+
+// Corrige una reserva ya capturada (por ejemplo, cambio de última hora en
+// fechas o monto). Solo administración/supervisión, ver puedeGestionarReservas.
+export async function actualizarReserva(id: string, input: ActualizarReservaInput): Promise<void> {
+  if (!supabaseConfigured || !supabase) {
+    console.info("Reserva actualizada (demo, no persistida):", { id, ...input });
+    return;
+  }
+  const { error } = await supabase
+    .from("reservas")
+    .update({
+      huesped: input.huesped || null,
+      fecha_inicio: input.fechaInicio,
+      fecha_fin: input.fechaFin,
+      canal: input.canal,
+      monto_pagado: input.montoPagado,
+      notas: input.notas || null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Borra una reserva ya capturada (error de captura). Solo
 // administración/supervisión, ver puedeGestionarReservas.
 export async function eliminarReserva(id: string): Promise<void> {
   if (!supabaseConfigured || !supabase) {
