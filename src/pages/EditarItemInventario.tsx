@@ -53,6 +53,7 @@ export default function EditarItemInventario() {
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
   const [descripcionCondicion, setDescripcionCondicion] = useState("");
+  const [linkCompra, setLinkCompra] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -83,6 +84,7 @@ export default function EditarItemInventario() {
         setCantidad(String(it.cantidad));
         setCondicion(it.condicion);
         setDescripcionCondicion(it.descripcionCondicion ?? "");
+        setLinkCompra(it.linkCompra ?? "");
         setFotoUrl(it.fotoUrl ?? null);
         setPreviewUrl(it.fotoUrl ?? null);
       })
@@ -132,6 +134,7 @@ export default function EditarItemInventario() {
         cantidad: Number(cantidad),
         condicion,
         descripcionCondicion: condicion !== "bueno" ? descripcionCondicion || undefined : undefined,
+        linkCompra: linkCompra.trim() || undefined,
         fotoUrl: fotoUrl || undefined,
       });
       navigate(`/inventario/villa/${item.villaId}`);
@@ -279,11 +282,19 @@ export default function EditarItemInventario() {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <label className="field-label">Cantidad</label>
               <input type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
             </div>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label className="field-label">Link de compra (opcional)</label>
+            <input value={linkCompra} onChange={(e) => setLinkCompra(e.target.value)} placeholder="https://..." />
+            <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+              Para no tener que volver a buscarlo si hay que comprar lo mismo en otra villa.
+            </p>
           </div>
         </>
       ) : (

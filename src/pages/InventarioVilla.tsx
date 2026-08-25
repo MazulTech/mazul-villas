@@ -184,6 +184,17 @@ export default function InventarioVilla() {
               {it.condicion !== "bueno" && it.descripcionCondicion && (
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>{it.descripcionCondicion}</p>
               )}
+              {it.linkCompra && (
+                <a
+                  href={it.linkCompra}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: "var(--terra-dark)", fontWeight: 700 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  🔗 Ver dónde comprarlo
+                </a>
+              )}
               <div style={{ display: "flex", gap: 8 }}>
                 {reportar && it.condicion !== "bueno" && (
                   <button

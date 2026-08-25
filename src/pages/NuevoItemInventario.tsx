@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { crearInventarioItem, listarVillas, type VillaBasica } from "../lib/data";
+import {
+  crearInventarioItem,
+  listarVillas,
+  buscarLinksCompra,
+  type VillaBasica,
+  type SugerenciaLinkCompra,
+} from "../lib/data";
 import { subirFoto } from "../lib/storage";
 import { mensajeError } from "../lib/errores";
 import type { Condicion } from "../types";
@@ -32,6 +38,8 @@ export default function NuevoItemInventario() {
   const [cantidad, setCantidad] = useState("1");
   const [condicion, setCondicion] = useState<Condicion>("bueno");
   const [descripcionCondicion, setDescripcionCondicion] = useState("");
+  const [linkCompra, setLinkCompra] = useState("");
+  const [sugerencias, setSugerencias] = useState<SugerenciaLinkCompra[]>([]);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -44,6 +52,29 @@ export default function NuevoItemInventario() {
       .then((v) => setVilla(v.find((x) => x.id === villaId) ?? null))
       .catch((e: Error) => setError(e.message));
   }, [profile, villaId]);
+
+  // Busca (con un poco de espera para no disparar en cada tecla) si ya se
+  // compró algo con nombre parecido en otra villa y tiene link guardado —
+  // así no hay que volver a buscarlo desde cero.
+  useEffect(() => {
+    if (nombre.trim().length < 3 || linkCompra.trim().length > 0) {
+      setSugerencias([]);
+      return;
+    }
+    let vivo = true;
+    const t = setTimeout(() => {
+      buscarLinksCompra(nombre)
+        .then((res) => {
+          if (vivo) setSugerencias(res.filter((s) => s.villaId !== villaId));
+        })
+        .catch(() => undefined);
+    }, 400);
+    return () => {
+      vivo = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombre, villaId]);
 
   useEffect(() => {
     return () => {
@@ -84,6 +115,7 @@ export default function NuevoItemInventario() {
         cantidad: Number(cantidad),
         condicion,
         descripcionCondicion: condicion !== "bueno" ? descripcionCondicion || undefined : undefined,
+        linkCompra: linkCompra.trim() || undefined,
         fotoUrl: fotoUrl || undefined,
       });
       navigate(`/inventario/villa/${villaId}`);
@@ -162,6 +194,41 @@ export default function NuevoItemInventario() {
       <div style={{ marginBottom: 10 }}>
         <label className="field-label">Item</label>
         <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="TV sala, refrigerador, sillas de exterior..." />
+      </div>
+
+      {sugerencias.length > 0 && (
+        <div className="card" style={{ background: "var(--sand)", border: "none", marginBottom: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>
+            Ya se compró algo parecido en otra villa:
+          </p>
+          {sugerencias.map((s, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: i > 0 ? 6 : 0 }}>
+              <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {s.nombre}
+              </span>
+              <button
+                type="button"
+                className="btn"
+                style={{ fontSize: 11, padding: "3px 8px", flexShrink: 0 }}
+                onClick={() => setLinkCompra(s.linkCompra)}
+              >
+                Usar este link
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginBottom: 10 }}>
+        <label className="field-label">Link de compra (opcional)</label>
+        <input
+          value={linkCompra}
+          onChange={(e) => setLinkCompra(e.target.value)}
+          placeholder="https://..."
+        />
+        <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+          Para no tener que volver a buscarlo si hay que comprar lo mismo en otra villa.
+        </p>
       </div>
 
       <div style={{ marginBottom: 10 }}>

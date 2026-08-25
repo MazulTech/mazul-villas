@@ -198,6 +198,10 @@ alter table inventario_items add column if not exists categoria text;
 -- Que esta mal, cuando condicion no es "bueno" (ej. "pata rota", "ya no
 -- enciende"). Sin esto, "Danado" no decia que habia pasado realmente.
 alter table inventario_items add column if not exists descripcion_condicion text;
+-- Link (Amazon, Mercado Libre, sitio del proveedor...) de donde se compro
+-- el item, para no volver a buscarlo si hay que comprar lo mismo en otra
+-- villa (ver buscarLinksCompra en lib/data.ts).
+alter table inventario_items add column if not exists link_compra text;
 
 -- Bitacora de rentas ya cobradas (no un calendario de reservaciones futuras):
 -- quien se hospedo, fechas, cuanto se pago y por que canal llego. Lo captura

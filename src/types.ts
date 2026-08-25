@@ -131,6 +131,11 @@ export interface InventarioItem {
   // pasó realmente. Opcional para no romper items ya capturados antes de
   // tener este campo.
   descripcionCondicion?: string;
+  // Link (Amazon, Mercado Libre, sitio del proveedor...) de dónde se
+  // compró, para no tener que volver a buscarlo si hace falta comprar lo
+  // mismo en otra villa. Opcional para no romper items ya capturados antes
+  // de tener este campo.
+  linkCompra?: string;
   fotoUrl?: string;
   creadoEn: string;
 }

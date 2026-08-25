@@ -454,7 +454,9 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, foto_url, creado_en")
+    .select(
+      "id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, link_compra, foto_url, creado_en"
+    )
     .eq("villa_id", villaId)
     .order("creado_en", { ascending: false });
   if (error) throw error;
@@ -467,6 +469,7 @@ export async function listarInventario(villaId: string): Promise<InventarioItem[
     cantidad: d.cantidad,
     condicion: d.condicion,
     descripcionCondicion: d.descripcion_condicion ?? undefined,
+    linkCompra: d.link_compra ?? undefined,
     fotoUrl: d.foto_url ?? undefined,
     creadoEn: d.creado_en,
   }));
@@ -480,6 +483,7 @@ export interface NuevoInventarioInput {
   cantidad: number;
   condicion: Condicion;
   descripcionCondicion?: string;
+  linkCompra?: string;
   fotoUrl?: string;
 }
 
@@ -496,6 +500,7 @@ export async function crearInventarioItem(input: NuevoInventarioInput): Promise<
     cantidad: input.cantidad,
     condicion: input.condicion,
     descripcion_condicion: input.descripcionCondicion || null,
+    link_compra: input.linkCompra || null,
     foto_url: input.fotoUrl || null,
   });
   if (error) throw error;
@@ -507,7 +512,9 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
   }
   const { data, error } = await supabase
     .from("inventario_items")
-    .select("id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, foto_url, creado_en")
+    .select(
+      "id, villa_id, zona, nombre, categoria, cantidad, condicion, descripcion_condicion, link_compra, foto_url, creado_en"
+    )
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -521,6 +528,7 @@ export async function obtenerInventarioItem(id: string): Promise<InventarioItem 
     cantidad: data.cantidad,
     condicion: data.condicion,
     descripcionCondicion: data.descripcion_condicion ?? undefined,
+    linkCompra: data.link_compra ?? undefined,
     fotoUrl: data.foto_url ?? undefined,
     creadoEn: data.creado_en,
   };
@@ -538,6 +546,7 @@ export interface EditarInventarioInput {
   cantidad: number;
   condicion: Condicion;
   descripcionCondicion?: string;
+  linkCompra?: string;
   fotoUrl?: string;
 }
 
@@ -555,10 +564,38 @@ export async function actualizarInventarioItem(id: string, input: EditarInventar
       cantidad: input.cantidad,
       condicion: input.condicion,
       descripcion_condicion: input.descripcionCondicion || null,
+      link_compra: input.linkCompra || null,
       foto_url: input.fotoUrl || null,
     })
     .eq("id", id);
   if (error) throw error;
+}
+
+// Busca items (en cualquier villa) con un nombre parecido que ya tengan un
+// link de compra guardado — para cuando hay que comprar lo mismo en otra
+// villa y no acordarse dónde se compró la primera vez. Ver
+// NuevoItemInventario.tsx. La RLS "inventario_select" ya deja ver todas las
+// villas a cualquier rol que no sea dueño (villa_visible).
+export interface SugerenciaLinkCompra {
+  villaId: string;
+  nombre: string;
+  linkCompra: string;
+}
+
+export async function buscarLinksCompra(nombre: string): Promise<SugerenciaLinkCompra[]> {
+  const texto = nombre.trim();
+  if (texto.length < 3) return [];
+  if (!supabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from("inventario_items")
+    .select("villa_id, nombre, link_compra")
+    .ilike("nombre", `%${texto}%`)
+    .not("link_compra", "is", null)
+    .limit(5);
+  if (error) throw error;
+  return (data ?? [])
+    .filter((d) => !!d.link_compra)
+    .map((d) => ({ villaId: d.villa_id, nombre: d.nombre, linkCompra: d.link_compra as string }));
 }
 
 // Quita el item del inventario por completo: se capturó por error, o se
