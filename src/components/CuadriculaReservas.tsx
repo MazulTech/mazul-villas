@@ -52,7 +52,16 @@ export default function CuadriculaReservas({ villas, reservas, diasAdelante = 7 
   return (
     <div>
       <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 10, marginBottom: 10 }}>
-        <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
+        {/*
+          Ojo: NO usar borderCollapse "collapse" aquí. Combinado con las
+          celdas "sticky" (columna de villa fija), varios navegadores
+          (sobre todo Safari/Chrome en celular) simplemente no pintan los
+          bordes colapsados sobre el contenido sticky, así que la
+          cuadrícula se ve sin líneas aunque el CSS las tenga. Con
+          "separate" + box-shadow inset por celda (en vez de border) el
+          borde se pinta siempre, sticky o no.
+        */}
+        <table style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", tableLayout: "fixed" }}>
           <thead>
             <tr>
               <th
@@ -66,7 +75,7 @@ export default function CuadriculaReservas({ villas, reservas, diasAdelante = 7 
                   fontSize: 10,
                   color: "var(--text-secondary)",
                   width: 92,
-                  border: "1px solid var(--border)",
+                  boxShadow: "inset -1px -1px 0 0 var(--border)",
                 }}
               >
                 Villa
@@ -83,7 +92,7 @@ export default function CuadriculaReservas({ villas, reservas, diasAdelante = 7 
                       width: 38,
                       color: i === 0 ? "var(--terra-dark)" : "var(--text-secondary)",
                       background: i === 0 ? "rgba(184, 106, 74, 0.1)" : "transparent",
-                      border: "1px solid var(--border)",
+                      boxShadow: "inset -1px -1px 0 0 var(--border)",
                     }}
                   >
                     <div style={{ textTransform: "capitalize" }}>{et.dia}</div>
@@ -110,7 +119,7 @@ export default function CuadriculaReservas({ villas, reservas, diasAdelante = 7 
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      border: "1px solid var(--border)",
+                      boxShadow: "inset -1px -1px 0 0 var(--border)",
                     }}
                   >
                     {etiquetaVilla(v)}
@@ -128,7 +137,7 @@ export default function CuadriculaReservas({ villas, reservas, diasAdelante = 7 
                           textAlign: "center",
                           fontSize: 13,
                           fontWeight: 700,
-                          border: "1px solid var(--border)",
+                          boxShadow: "inset -1px -1px 0 0 var(--border)",
                           background: r ? "rgba(184, 106, 74, 0.16)" : "transparent",
                         }}
                       >
